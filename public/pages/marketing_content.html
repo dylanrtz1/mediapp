@@ -1,0 +1,211 @@
+
+<style>
+  .preview-image {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    background-color: #f3f4f6;
+    border: 2px dashed #d1d5db;
+  }
+</style>
+
+
+<div>
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold text-gray-800">Gestión de Marketing</h1>
+  </div>
+
+  <!-- Mensajes de feedback -->
+  <div id="success-message" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg relative mb-6" role="alert">
+    <p class="font-bold">¡Éxito!</p>
+    <p id="success-text">Los cambios de marketing han sido guardados.</p>
+  </div>
+  <div id="error-message" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg relative mb-6" role="alert">
+    <p class="font-bold">Error</p>
+    <p id="error-text">No se pudieron guardar los cambios.</p>
+  </div>
+
+
+  <form id="marketing-form" class="space-y-12">
+    
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+      <h2 class="text-2xl font-bold text-gray-800 flex items-center"><i class="fas fa-play-circle text-blue-500 mr-3"></i>Video "Quiénes Somos"</h2>
+      <p class="text-gray-500 mt-2">Este video aparecerá en la pantalla de inicio de la aplicación móvil.</p>
+      <div class="mt-6">
+        <label for="aboutUsVideoUrl" class="block text-sm font-medium text-gray-700 mb-1">URL del Video (MP4, YouTube, etc.)</label>
+        <input type="url" id="aboutUsVideoUrl" name="aboutUsVideoUrl" placeholder="https://..." class="w-full px-4 py-3 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+      </div>
+    </div>
+
+    
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+      <h2 class="text-2xl font-bold text-gray-800 flex items-center"><i class="fas fa-bullhorn text-purple-500 mr-3"></i>Banners Promocionales</h2>
+      <p class="text-gray-500 mt-2">Estos banners rotarán automáticamente en la pantalla de inicio. Arrástralos para reordenarlos.</p>
+      
+      <div id="promotions-container" class="mt-6 space-y-6">
+       
+        <div id="spinner-container" class="text-center py-8">
+          <i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i>
+        </div>
+      </div>
+
+      <button type="button" id="add-promotion-btn" class="mt-6 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors flex items-center">
+        <i class="fas fa-plus-circle mr-2"></i>Añadir Banner Promocional
+      </button>
+    </div>
+
+  
+    <div class="flex justify-end pt-4">
+      <button id="submit-btn" type="submit" class="inline-flex justify-center items-center py-3 px-10 border border-transparent shadow-sm text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all duration-300 transform hover:scale-105">
+        <span id="btn-text">Guardar Cambios</span>
+        <svg id="btn-spinner" class="hidden animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+      </button>
+    </div>
+  </form>
+</div>
+
+
+<script type="module">
+  import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const db = window.db;
+
+ 
+  const marketingForm = document.getElementById('marketing-form');
+  const promotionsContainer = document.getElementById('promotions-container');
+  const addPromotionBtn = document.getElementById('add-promotion-btn');
+  const successMessage = document.getElementById('success-message');
+  const errorMessage = document.getElementById('error-message');
+  
+  
+  const marketingDocRef = doc(db, "marketing", "settings");
+
+ 
+  const loadMarketingData = async () => {
+    try {
+      const docSnap = await getDoc(marketingDocRef);
+      promotionsContainer.innerHTML = ''; // Limpiar spinner
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        document.getElementById('aboutUsVideoUrl').value = data.aboutUsVideoUrl || '';
+        (data.promotions || []).forEach(promo => addPromotionField(promo));
+      } else {
+        // Si no hay datos, añadir un campo de banner vacío por defecto
+        addPromotionField();
+      }
+    } catch (error) {
+      console.error("Error al cargar datos de marketing:", error);
+      showError(error.message);
+    }
+  };
+
+  
+  const addPromotionField = (data = {}) => {
+    const div = document.createElement('div');
+    div.className = 'p-6 border border-gray-200 rounded-xl bg-gray-50 promotion-item';
+    
+    const imagePreviewId = `preview-${Date.now()}`;
+
+    div.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Vista Previa</label>
+          <img id="${imagePreviewId}" src="${data.imageUrl || 'https://placehold.co/400x200/e2e8f0/9ca3af?text=Imagen'}" alt="Vista previa del banner" class="rounded-lg preview-image">
+        </div>
+        <div class="md:col-span-2 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">URL de la Imagen</label>
+            <input type="url" name="imageUrl" placeholder="https://..." value="${data.imageUrl || ''}" class="w-full px-3 py-2 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 image-url-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Enlace de WhatsApp (o web)</label>
+            <input type="url" name="linkUrl" placeholder="https://wa.me/..." value="${data.linkUrl || ''}" class="w-full px-3 py-2 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+      </div>
+      <div class="text-right mt-4">
+        <button type="button" class="text-red-600 text-sm hover:underline font-semibold delete-btn">Eliminar Banner</button>
+      </div>
+    `;
+
+    
+    div.querySelector('.image-url-input').addEventListener('input', (e) => {
+      const previewImg = document.getElementById(imagePreviewId);
+      if (e.target.value) {
+        previewImg.src = e.target.value;
+      } else {
+        previewImg.src = 'https://placehold.co/400x200/e2e8f0/9ca3af?text=Imagen';
+      }
+    });
+
+    // Evento para eliminar
+    div.querySelector('.delete-btn').addEventListener('click', () => {
+      div.remove();
+    });
+
+    promotionsContainer.appendChild(div);
+  };
+
+  if (addPromotionBtn) addPromotionBtn.addEventListener('click', () => addPromotionField());
+
+  // --- GUARDADO DE DATOS (SUBMIT) ---
+  marketingForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const btnSpinner = document.getElementById('btn-spinner');
+
+    submitBtn.disabled = true;
+    btnText.classList.add('hidden');
+    btnSpinner.classList.remove('hidden');
+    hideMessages();
+
+    try {
+      const aboutUsVideoUrl = document.getElementById('aboutUsVideoUrl').value;
+      
+      const promotions = Array.from(promotionsContainer.querySelectorAll('.promotion-item')).map(item => {
+        const imageUrl = item.querySelector('[name="imageUrl"]').value;
+        const linkUrl = item.querySelector('[name="linkUrl"]').value;
+        return { imageUrl, linkUrl };
+      }).filter(p => p.imageUrl && p.linkUrl); // Solo guardar banners con ambos datos
+
+      const marketingData = {
+        aboutUsVideoUrl,
+        promotions,
+      };
+
+      // Guardar en Firestore usando setDoc para crear o sobreescribir
+      await setDoc(marketingDocRef, marketingData);
+
+      showSuccess('La configuración de marketing ha sido guardada exitosamente.');
+
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      showError(error.message);
+    } finally {
+      submitBtn.disabled = false;
+      btnText.classList.remove('hidden');
+      btnSpinner.classList.add('hidden');
+    }
+  });
+
+
+  const showSuccess = (message) => {
+    document.getElementById('success-text').textContent = message;
+    successMessage.classList.remove('hidden');
+    setTimeout(() => successMessage.classList.add('hidden'), 4000);
+  };
+  const showError = (message) => {
+    document.getElementById('error-text').textContent = message;
+    errorMessage.classList.remove('hidden');
+    setTimeout(() => errorMessage.classList.add('hidden'), 4000);
+  };
+  const hideMessages = () => {
+    successMessage.classList.add('hidden');
+    errorMessage.classList.add('hidden');
+  };
+
+ 
+  loadMarketingData();
+</script>

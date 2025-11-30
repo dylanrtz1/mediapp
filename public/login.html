@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login: Cirugías de Lujo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    #animated-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+    .glassmorphism { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+    .toast { transition: opacity 0.3s, transform 0.3s; }
+  </style>
+</head>
+<body class="bg-gray-900 font-sans text-gray-800">
+
+  
+  <div class="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
+    <canvas id="animated-bg"></canvas>
+    <div class="w-full max-w-md">
+      <div class="glassmorphism rounded-2xl shadow-2xl p-8 space-y-6">
+        <div class="text-center">
+          <img src="img/logo.png" alt="Logo Cirugías de Lujo" class="w-48 mx-auto mb-4">
+          <h2 class="text-2xl font-bold text-white">Acceso Administrativo</h2>
+        </div>
+        
+        <form id="login-form">
+          <div>
+            <label for="email" class="text-sm font-medium text-gray-200">Correo Electrónico</label>
+            <input type="email" id="email" name="email" required class="mt-1 block w-full bg-gray-700 bg-opacity-50 text-white border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 px-4 py-3">
+          </div>
+          <div>
+            <label for="password" class="text-sm font-medium text-gray-200">Contraseña</label>
+            <input type="password" id="password" name="password" required class="mt-1 block w-full bg-gray-700 bg-opacity-50 text-white border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 px-4 py-3">
+          </div>
+          <button id="login-btn" type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors">
+            <span id="login-btn-text">Ingresar</span>
+            <svg id="login-spinner" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="fixed top-5 right-5 z-50"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAM_sXp_nSQ5g0sDe6nHlSnDq7V4ah4Wzc",
+      authDomain: "cirujias-c8336.firebaseapp.com",
+      projectId: "cirujias-c8336",
+      storageBucket: "cirujias-c8336.firebasestorage.app",
+      messagingSenderId: "277007509883",
+      appId: "1:277007509883:web:e23fd21dadd196709ff5de",
+      measurementId: "G-38GSJ3XSKK"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    const loginForm = document.getElementById('login-form');
+    const loginBtn = document.getElementById('login-btn');
+    const loginBtnText = document.getElementById('login-btn-text');
+    const loginSpinner = document.getElementById('login-spinner');
+    
+    // --- Sistema de Notificaciones Moderno ---
+    const showToast = (message, isError = false) => {
+      const toastContainer = document.getElementById('toast-container');
+      const toastId = `toast-${Date.now()}`;
+      const bgColor = isError ? 'bg-red-500' : 'bg-green-500';
+      const iconClass = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
+
+      const toast = document.createElement('div');
+      toast.id = toastId;
+      toast.className = `toast flex items-center p-4 mb-4 text-white ${bgColor} rounded-lg shadow-lg opacity-0 transform translate-x-12`;
+      toast.innerHTML = `<div class="text-xl"><i class="fas ${iconClass}"></i></div><div class="ml-3 text-sm font-medium">${message}</div>`;
+      
+      toastContainer.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-0', 'translate-x-12');
+      }, 10);
+      
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        toast.addEventListener('transitionend', () => toast.remove());
+      }, 5000);
+    };
+
+
+    // --- Lógica de Autenticación ---
+    const handleLogin = async (e) => {
+      e.preventDefault();
+      loginBtn.disabled = true;
+      loginBtnText.classList.add('hidden');
+      loginSpinner.classList.remove('hidden');
+
+      const email = loginForm.email.value;
+      const password = loginForm.password.value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists() && docSnap.data().role === 'admin') {
+          window.location.href = 'index.html';
+        } else {
+          await signOut(auth);
+          showToast('No tienes permisos de administrador.', true);
+        }
+      } catch (error) {
+        showToast('Correo o contraseña incorrectos.', true);
+      } finally {
+        loginBtn.disabled = false;
+        loginBtnText.classList.remove('hidden');
+        loginSpinner.classList.add('hidden');
+      }
+    };
+    
+    loginForm.addEventListener('submit', handleLogin);
+
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().role === 'admin') {
+          window.location.href = 'index.html';
+        }
+      }
+    });
+
+    const canvas = document.getElementById('animated-bg');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let particlesArray;
+    const colors = ['#D4AF37', '#1976D2', '#81D4FA'];
+
+    class Particle {
+      constructor(x, y, directionX, directionY, size, color) {
+        this.x = x; this.y = y; this.directionX = directionX;
+        this.directionY = directionY; this.size = size; this.color = color;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+        gradient.addColorStop(0, this.color + 'BF'); // 75% opacity
+        gradient.addColorStop(1, this.color + '00'); // 0% opacity
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+      update() {
+        if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+        if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+        this.x += this.directionX;
+        this.y += this.directionY;
+        this.draw();
+      }
+    }
+
+    function init() {
+      particlesArray = [];
+      let numberOfParticles = (canvas.height * canvas.width) / 9000;
+      for (let i = 0; i < numberOfParticles; i++) {
+        let size = (Math.random() * 5) + 2;
+        let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+        let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+        let directionX = (Math.random() * .4) - .2;
+        let directionY = (Math.random() * .4) - .2;
+        let color = colors[Math.floor(Math.random() * colors.length)];
+        particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      for (let i = 0; i < particlesArray.length; i++) {
+        particlesArray[i].update();
+      }
+    }
+
+    init();
+    animate();
+    window.addEventListener('resize', () => {
+      canvas.width = innerWidth;
+      canvas.height = innerHeight;
+      init();
+    });
+  </script>
+
+</body>
+</html>
+

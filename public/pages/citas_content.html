@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestión de Citas</title>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome (iconos) -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        integrity="sha512-CG3m0s7j6v8q1xT4kQn2Cw7o6G4xT1U3bXwCq7Jw1mQe2Q2g3YQy8S9rG9b1gU5lYp1Kc2e3c7i0j0JQxE3r0A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 50% { opacity: .5; } }
+    .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+    .skeleton { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; background-color: #e5e7eb; border-radius: 0.5rem; }
+    .pagination-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+    .status-badge { padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .status-aprobado { background-color: #dcfce7; color: #166534; }
+    .status-pendiente { background-color: #fef3c7; color: #92400e; }
+    .status-rechazado { background-color: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+<div id="citas-content" class="fade-in p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10">
+    <div>
+      <h1 class="text-4xl font-bold text-gray-800">Gestión de Citas</h1>
+      <p class="text-gray-500 mt-1">Aprueba, rechaza y visualiza todas las solicitudes de citas.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-orange-500">
+      <div class="flex items-center space-x-4">
+        <div class="bg-orange-100 p-4 rounded-full"><i class="fas fa-hourglass-half text-orange-600 text-2xl"></i></div>
+        <div>
+          <p class="text-gray-500 text-sm font-medium">Citas Pendientes</p>
+          <div id="citas-pendientes" class="text-3xl font-bold text-gray-800"><div class="skeleton h-8 w-16 mt-1"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-green-500">
+      <div class="flex items-center space-x-4">
+        <div class="bg-green-100 p-4 rounded-full"><i class="fas fa-calendar-check text-green-600 text-2xl"></i></div>
+        <div>
+          <p class="text-gray-500 text-sm font-medium">Aprobadas (Hoy)</p>
+          <div id="aprobadas-hoy" class="text-3xl font-bold text-gray-800"><div class="skeleton h-8 w-16 mt-1"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-blue-500">
+      <div class="flex items-center space-x-4">
+        <div class="bg-blue-100 p-4 rounded-full"><i class="fas fa-sack-dollar text-blue-600 text-2xl"></i></div>
+        <div>
+          <p class="text-gray-500 text-sm font-medium">Ingresos Aprobados (Mes)</p>
+          <div id="ingresos-mes" class="text-3xl font-bold text-gray-800"><div class="skeleton h-8 w-32 mt-1"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-8 bg-white p-6 rounded-2xl shadow-lg">
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+      <div class="flex space-x-2 bg-gray-100 p-1 rounded-full">
+        <button data-filter="todos" class="filter-btn bg-white text-blue-600 shadow px-4 py-2 text-sm font-semibold rounded-full">Todos</button>
+        <button data-filter="pendiente" class="filter-btn px-4 py-2 text-sm font-semibold text-gray-600 rounded-full">Pendientes</button>
+        <button data-filter="aprobado" class="filter-btn px-4 py-2 text-sm font-semibold text-gray-600 rounded-full">Aprobadas</button>
+        <button data-filter="rechazado" class="filter-btn px-4 py-2 text-sm font-semibold text-gray-600 rounded-full">Rechazadas</button>
+      </div>
+      <div class="relative w-full sm:w-72">
+        <input type="text" id="search-citas" placeholder="Buscar por paciente o doctor..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+      </div>
+    </div>
+
+   
+    <div class="overflow-x-auto overflow-y-visible relative">
+      <table class="w-full text-left">
+        <thead class="border-b-2 border-gray-100">
+          <tr>
+            <th class="p-4 text-sm font-semibold text-gray-500">Paciente</th>
+            <th class="p-4 text-sm font-semibold text-gray-500">Doctor</th>
+            <th class="p-4 text-sm font-semibold text-gray-500">Fecha Cita</th>
+            <th class="p-4 text-sm font-semibold text-gray-500">Monto</th>
+            <th class="p-4 text-sm font-semibold text-gray-500 text-center">Estado</th>
+            <th class="p-4 text-sm font-semibold text-gray-500 text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="citas-lista"></tbody>
+      </table>
+    </div>
+
+    <div id="pagination-controls" class="flex justify-between items-center mt-4 pt-4 border-t">
+      <span id="page-info" class="text-sm text-gray-600"></span>
+      <div class="flex space-x-2">
+        <button id="prev-page" class="pagination-btn px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"><i class="fas fa-arrow-left mr-2"></i>Anterior</button>
+        <button id="next-page" class="pagination-btn px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Siguiente<i class="fas fa-arrow-right ml-2"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de comprobante -->
+<div id="receipt-modal" class="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center p-4 z-50 hidden">
+  <div class="bg-white p-2 rounded-lg shadow-2xl max-w-lg w-full max-h-full overflow-auto relative">
+    <img id="receipt-image" src="" alt="Comprobante de Pago" class="w-full h-auto">
+    <button id="close-modal" class="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full w-8 h-8 flex items-center justify-center">&times;</button>
+  </div>
+</div>
+
+<script type="module">
+  import { collection, getDocs, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const db = window.db;
+  let allPayments = [];
+  let currentFilter = 'todos';
+  let searchTerm = '';
+  let currentPage = 1;
+  const PAGE_SIZE = 10;
+  let totalPages = 1;
+
+  const receiptModal = document.getElementById('receipt-modal');
+  const receiptImage = document.getElementById('receipt-image');
+  const closeModalBtn = document.getElementById('close-modal');
+
+  const showReceiptModal = (url) => {
+    receiptImage.src = url;
+    receiptModal.classList.remove('hidden');
+  };
+  const hideReceiptModal = () => receiptModal.classList.add('hidden');
+
+  closeModalBtn.addEventListener('click', hideReceiptModal);
+  receiptModal.addEventListener('click', (e) => {
+    if (e.target === receiptModal) hideReceiptModal();
+  });
+
+  const safeToDate = (maybeTs) => {
+    try {
+      return maybeTs && typeof maybeTs.toDate === 'function' ? maybeTs.toDate() : null;
+    } catch { return null; }
+  };
+
+  const updateStatus = async (docId, newStatus) => {
+    const actionText = newStatus === 'aprobado' ? 'aprobar' : 'rechazar';
+    if (!confirm(`¿Estás seguro de que deseas ${actionText} esta cita?`)) return;
+
+    try {
+      const docRef = doc(db, "pagos", docId);
+      await updateDoc(docRef, { status: newStatus });
+
+      const index = allPayments.findIndex(p => p.id === docId);
+      if (index !== -1) {
+        allPayments[index].status = newStatus;
+      }
+
+      renderUI();
+      alert(`Cita ${actionText}da con éxito.`);
+    } catch (error) {
+      console.error(`Error al ${actionText} la cita:`, error);
+      alert(`No se pudo ${actionText} la cita.`);
+    }
+  };
+
+  const loadInitialData = async () => {
+    try {
+      const q = query(collection(db, "pagos"), orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      allPayments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderUI();
+    } catch (error) {
+      console.error("Error cargando citas:", error);
+    }
+  };
+
+  const renderUI = () => {
+    renderKPIs(allPayments);
+    renderTable();
+  };
+
+  const renderKPIs = (payments) => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const pending = payments.filter(p => p.status === 'pendiente').length;
+    const approvedToday = payments.filter(p => {
+      const appt = safeToDate(p.appointmentDate);
+      return p.status === 'aprobado' && appt && appt >= startOfToday && appt < endOfToday;
+    }).length;
+
+    const ingresosMes = payments
+      .filter(p => p.status === 'aprobado' && (() => { const c = safeToDate(p.createdAt); return c && c >= startOfMonth; })())
+      .reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+
+    document.getElementById('citas-pendientes').textContent = pending;
+    document.getElementById('aprobadas-hoy').textContent = approvedToday;
+    document.getElementById('ingresos-mes').textContent =
+      ingresosMes.toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
+  };
+
+  const renderTable = () => {
+    let filteredPayments = allPayments;
+
+    if (currentFilter !== 'todos') {
+      filteredPayments = filteredPayments.filter(p => p.status === currentFilter);
+    }
+
+    const lowerCaseSearch = (searchTerm || '').toLowerCase();
+    if (lowerCaseSearch) {
+      filteredPayments = filteredPayments.filter(p =>
+        (p.patientName || '').toLowerCase().includes(lowerCaseSearch) ||
+        (p.doctorName || '').toLowerCase().includes(lowerCaseSearch)
+      );
+    }
+
+    totalPages = Math.ceil(filteredPayments.length / PAGE_SIZE) || 1;
+    if (currentPage > totalPages) currentPage = 1;
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    const paginatedPayments = filteredPayments.slice(start, end);
+
+    const tableBody = document.getElementById('citas-lista');
+    tableBody.innerHTML = '';
+
+    if (paginatedPayments.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-gray-500">No se encontraron citas con los filtros actuales.</td></tr>`;
+    } else {
+      paginatedPayments.forEach(p => {
+        const dateObj = safeToDate(p.appointmentDate);
+        const formattedDate = dateObj
+          ? `${dateObj.toLocaleDateString('es-EC')} ${dateObj.toLocaleTimeString('es-EC', {hour: '2-digit', minute:'2-digit'})}`
+          : 'N/D';
+        const statusClass = `status-${p.status}`;
+
+        const actionsHtml = p.status === 'pendiente' ? `
+          <div class="relative inline-block text-left">
+            <button data-action="toggle-menu"
+                    class="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+              Acciones <i class="fas fa-chevron-down ml-1 text-xs"></i>
+            </button>
+            <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50"
+                 role="menu" aria-orientation="vertical" aria-hidden="true">
+              <div class="py-1" role="none">
+                <a href="#"
+                   data-action="approve" data-id="${p.id}"
+                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-green-700"
+                   role="menuitem">Aprobar</a>
+                <a href="#"
+                   data-action="reject" data-id="${p.id}"
+                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-red-700"
+                   role="menuitem">Rechazar</a>
+              </div>
+            </div>
+          </div>
+        ` : `-`;
+
+        const row = `
+          <tr class="border-b border-gray-100">
+            <td class="p-4">
+              <div class="font-medium text-gray-800">${p.patientName || 'N/A'}</div>
+              <div class="text-xs text-gray-500 break-all">${p.patientEmail || ''}</div>
+            </td>
+            <td class="p-4 text-gray-600">${p.doctorName || 'N/A'}</td>
+            <td class="p-4 text-gray-600">${formattedDate}</td>
+            <td class="p-4 font-bold text-gray-800">
+              ${(p.totalAmount || 0).toLocaleString('es-EC', { style: 'currency', currency: 'USD' })}
+            </td>
+            <td class="p-4 text-center">
+              <span class="status-badge ${statusClass}">${p.status}</span>
+            </td>
+            <td class="p-4 text-center">
+              <div class="flex justify-center items-center space-x-2">
+                <button data-action="view-receipt" data-url="${p.receiptUrl || ''}"
+                        class="text-blue-600 hover:underline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        ${!p.receiptUrl ? 'disabled' : ''}>
+                  Ver Comp.
+                </button>
+                ${actionsHtml}
+              </div>
+            </td>
+          </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+
+    document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}`;
+    document.getElementById('prev-page').disabled = currentPage <= 1;
+    document.getElementById('next-page').disabled = currentPage >= totalPages;
+  };
+
+  // Filtros
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('bg-white', 'text-blue-600', 'shadow'));
+      e.currentTarget.classList.add('bg-white', 'text-blue-600', 'shadow');
+      currentFilter = e.currentTarget.dataset.filter;
+      currentPage = 1;
+      renderTable();
+    });
+  });
+
+  // Búsqueda
+  document.getElementById('search-citas').addEventListener('input', (e) => {
+    searchTerm = e.target.value || '';
+    currentPage = 1;
+    renderTable();
+  });
+
+  // Paginación
+  document.getElementById('prev-page').addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; renderTable(); }
+  });
+
+  document.getElementById('next-page').addEventListener('click', () => {
+    const lowerCaseSearch = (searchTerm || '').toLowerCase();
+    const filteredCount = allPayments.filter(p =>
+      (currentFilter === 'todos' || p.status === currentFilter) &&
+      (
+        (p.patientName || '').toLowerCase().includes(lowerCaseSearch) ||
+        (p.doctorName || '').toLowerCase().includes(lowerCaseSearch)
+      )
+    ).length;
+    const maxPages = Math.ceil(filteredCount / PAGE_SIZE) || 1;
+    if (currentPage < maxPages) { currentPage++; renderTable(); }
+  });
+
+  // Acciones en tabla (delegación)
+  document.getElementById('citas-lista').addEventListener('click', (e) => {
+    const clickable = e.target.closest('[data-action]');
+    if (!clickable) return;
+
+    // Evita que <a href="#"> suba la página
+    if (clickable.tagName === 'A') e.preventDefault();
+
+    e.stopPropagation();
+    const action = clickable.dataset.action;
+
+    if (action === 'toggle-menu') {
+      const menu = clickable.nextElementSibling;
+      const isHidden = menu.classList.contains('hidden');
+      document.querySelectorAll('[role="menu"]').forEach(m => m.classList.add('hidden'));
+      if (isHidden) menu.classList.remove('hidden');
+
+    } else {
+      const menuToClose = clickable.closest('[role="menu"]');
+      if (menuToClose) menuToClose.classList.add('hidden');
+
+      if (action === 'approve' || action === 'reject') {
+        const docId = clickable.dataset.id;
+        const newStatus = action === 'approve' ? 'aprobado' : 'rechazado';
+        updateStatus(docId, newStatus);
+      }
+      if (action === 'view-receipt') {
+        const url = clickable.dataset.url;
+        if (url) showReceiptModal(url);
+      }
+    }
+  });
+
+  // Cerrar menús al hacer click fuera
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-action="toggle-menu"]')) {
+      document.querySelectorAll('[role="menu"]').forEach(m => m.classList.add('hidden'));
+    }
+  });
+
+  if (window.db) {
+    loadInitialData();
+  } else {
+    console.error("Firebase (window.db) no está disponible.");
+  }
+</script>
+
+</body>
+</html>

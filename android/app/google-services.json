@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "277007509883",
+    "project_id": "cirujias-c8336",
+    "storage_bucket": "cirujias-c8336.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:277007509883:android:baaee5d088c165399ff5de",
+        "android_client_info": {
+          "package_name": "com.medi.mediapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "277007509883-fjvkkl00tv0citjkgv1m15ru0u7p75r3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.medi.mediapp",
+            "certificate_hash": "b6ace97d66f93ddcac711d98c1d91801a866e709"
+          }
+        },
+        {
+          "client_id": "277007509883-ejgp9aubu71fsql0ocaj5tdqodrtbhti.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYZNHQ16nk07bbIc0LW2o7YYSdXjNc-UI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "277007509883-ejgp9aubu71fsql0ocaj5tdqodrtbhti.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "277007509883-6pih4el96uthqpiqffbtmlg56ini04iv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.medi.mediapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

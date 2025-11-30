@@ -1,0 +1,143 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin: Cirugías de Lujo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+
+  <style>
+    .sidebar-link.active {
+      background-color: #1e3a8a;
+      color: #D4AF37;
+      border-left: 4px solid #D4AF37;
+    }
+    .sidebar-link.active i {
+      color: #D4AF37;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+ <div id="dashboard-container" class="hidden flex h-screen">
+    <aside class="w-64 bg-gray-900 text-gray-300 flex flex-col flex-shrink-0">
+      <div class="p-6 text-center border-b border-gray-700">
+        <img src="img/logo.png" alt="Logo Cirugías de Lujo" class="w-40 mx-auto mb-2">
+        <p class="text-sm text-gray-500">Panel de Control</p>
+      </div>
+      <nav class="flex-1 p-4 space-y-2">
+        <a href="#" data-page="pages/dashboard_content.html" class="sidebar-link active flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
+          <i class="fas fa-chart-pie w-6 text-center text-gray-400"></i><span class="ml-4">Dashboard</span>
+        </a>
+        <a href="#" data-page="pages/doctors_content.html" class="sidebar-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
+          <i class="fas fa-user-doctor w-6 text-center text-gray-400"></i><span class="ml-4">Médicos</span>
+        </a>
+        <a href="#" data-page="pages/pacientes_content.html" class="sidebar-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
+          <i class="fas fa-users w-6 text-center text-gray-400"></i><span class="ml-4">Pacientes</span>
+        </a>
+        <a href="#" data-page="pages/citas_content.html" class="sidebar-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
+          <i class="fas fa-calendar-check w-6 text-center text-gray-400"></i><span class="ml-4">Gestión de Citas</span>
+        </a>
+        <a href="#" data-page="pages/marketing_content.html" class="sidebar-link flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
+          <i class="fas fa-bullhorn w-6 text-center text-gray-400"></i><span class="ml-4">Marketing</span>
+        </a>
+      </nav>
+      <div class="p-4 border-t border-gray-700">
+        <a href="#" id="logout-btn" class="flex items-center p-3 rounded-lg text-red-400 hover:bg-red-900 hover:text-white transition-colors">
+          <i class="fas fa-sign-out-alt w-6 text-center"></i><span class="ml-4">Cerrar Sesión</span>
+        </a>
+      </div>
+    </aside>
+
+    <main id="main-content" class="flex-1 p-10 overflow-y-auto">
+  
+    </main>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAM_sXp_nSQ5g0sDe6nHlSnDq7V4ah4Wzc",
+      authDomain: "cirujias-c8336.firebaseapp.com",
+      projectId: "cirujias-c8336",
+      storageBucket: "cirujias-c8336.firebasestorage.app",
+      messagingSenderId: "277007509883",
+      appId: "1:277007509883:web:e23fd21dadd196709ff5de",
+      measurementId: "G-38GSJ3XSKK"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    window.db = getFirestore(app); 
+
+    const dashboardContainer = document.getElementById('dashboard-container');
+    const mainContent = document.getElementById('main-content');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(window.db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().role === 'admin') {
+          dashboardContainer.classList.remove('hidden');
+          dashboardContainer.classList.add('flex');
+          loadPage('pages/dashboard_content.html');
+        } else {
+          await signOut(auth);
+          window.location.href = 'login.html';
+        }
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => signOut(auth));
+
+    const loadPage = async (pageUrl) => {
+      mainContent.innerHTML = `<div class="flex justify-center items-center h-full"><i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i></div>`;
+      try {
+        const response = await fetch(pageUrl);
+        if (!response.ok) throw new Error('Página no encontrada');
+        
+        const pageContent = await response.text();
+        mainContent.innerHTML = pageContent;
+      
+       
+        const scripts = mainContent.querySelectorAll('script[type="module"]');
+        scripts.forEach(script => {
+          const newScript = document.createElement('script');
+          newScript.type = 'module';
+          newScript.textContent = script.textContent;
+          document.body.appendChild(newScript).remove(); 
+        });
+
+      } catch (error) {
+        console.error('Error al cargar la página:', error);
+        mainContent.innerHTML = `<div class="text-red-500 p-8 bg-red-100 rounded-lg">Error al cargar el contenido.</div>`;
+      }
+    };
+    
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    sidebarLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const pageUrl = link.getAttribute('data-page');
+        if(pageUrl) {
+          loadPage(pageUrl);
+          sidebarLinks.forEach(l => l.classList.remove('active'));
+          link.classList.add('active');
+        }
+      });
+    });
+    
+   
+    window.loadPage = loadPage;
+  </script>
+
+</body>
+</html>
+

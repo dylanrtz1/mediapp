@@ -1,0 +1,484 @@
+<!-- Vista de la tabla de doctores -->
+<div id="doctors-view">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+    <h1 class="text-4xl font-bold text-gray-800">Gestión de Médicos</h1>
+    <button id="show-create-form-btn" class="mt-4 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg flex items-center shadow-lg transition-transform transform hover:scale-105">
+      <i class="fas fa-plus mr-2"></i> Registrar Nuevo Médico
+    </button>
+  </div>
+  <div class="bg-white p-8 rounded-2xl shadow-lg">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left text-gray-500">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3">Nombre del Médico</th>
+            <th scope="col" class="px-6 py-3">Especialidad</th>
+            <th scope="col" class="px-6 py-3">Ciudad</th>
+            <th scope="col" class="px-6 py-3 text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="doctors-table-body">
+          <tr><td colspan="4" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Vista del formulario para Crear/Editar -->
+<div id="add-doctor-view" class="hidden">
+  <div class="flex justify-between items-center mb-8">
+    <h1 id="form-title" class="text-3xl font-bold text-gray-800">Registrar Nuevo Médico</h1>
+    <button id="back-to-list-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg flex items-center">
+      <i class="fas fa-arrow-left mr-2"></i> Volver a la Lista
+    </button>
+  </div>
+
+  <div id="success-message" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg relative mb-6" role="alert">
+    <p class="font-bold">¡Operación Exitosa!</p>
+    <p id="success-text">El médico ha sido procesado correctamente.</p>
+  </div>
+  <div id="error-message" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg relative mb-6" role="alert">
+    <p class="font-bold">Error en la Operación</p>
+    <p id="error-text">No se pudo completar la operación.</p>
+  </div>
+
+  <form id="doctor-form" class="bg-white p-8 rounded-2xl shadow-lg space-y-8">
+    <input type="hidden" id="doctorId" name="doctorId">
+
+    <fieldset id="auth-fieldset">
+      <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700 flex items-center"><i class="fas fa-key text-yellow-500 mr-3"></i>Credenciales de Acceso (Obligatorio)</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          <div><label for="auth-email" class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label><input type="email" id="auth-email" name="authEmail" required class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+          <div><label for="auth-password" class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label><input type="password" id="auth-password" name="authPassword" required minlength="6" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+        </div>
+      </div>
+    </fieldset>
+    
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-user text-gray-400 mr-3"></i>Información de Perfil</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div><label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label><input type="text" id="name" name="name" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+            <div><label for="city" class="block text-sm font-medium text-gray-700 mb-1">Ciudad</label><select id="city" name="city" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"><option value="Guayaquil">Guayaquil</option><option value="Quito">Quito</option></select></div>
+            <div>
+              <label for="specialty" class="block text-sm font-medium text-gray-700 mb-1">Especialidad Principal</label>
+              <select id="specialty" name="specialty" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                <option value="ODONTOLÓGICA">ODONTOLÓGICA</option>
+                <option value="CIRUGÍA ESTÉTICA">CIRUGÍA ESTÉTICA</option>
+                <option value="CIRUGÍA BARIATRICA">CIRUGÍA BARIATRICA</option>
+              </select>
+            </div>
+            <div><label for="subSpecialty" class="block text-sm font-medium text-gray-700 mb-1">Sub-especialidad</label><input type="text" id="subSpecialty" name="subSpecialty" placeholder="Ej: Rinoplastia" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+        </div>
+    </div>
+    
+    <div class="border-b border-gray-200 pb-6">
+      <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-info-circle text-gray-400 mr-3"></i>Acerca del Doctor</h2>
+      <div class="mt-4">
+          <label for="about" class="block text-sm font-medium text-gray-700 mb-1">Biografía corta (máx. 500 caracteres)</label>
+          <textarea id="about" name="about" rows="4" maxlength="500" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Escriba una breve introducción..."></textarea>
+      </div>
+    </div>
+
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-certificate text-gray-400 mr-3"></i>Credenciales Profesionales</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div><label for="mspRegistrationNumber" class="block text-sm font-medium text-gray-700 mb-1">Registro MSP</label><input type="text" id="mspRegistrationNumber" name="mspRegistrationNumber" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+            <div><label for="senescytRegistrationNumber" class="block text-sm font-medium text-gray-700 mb-1">Registro SENESCYT</label><input type="text" id="senescytRegistrationNumber" name="senescytRegistrationNumber" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+        </div>
+    </div>
+
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-chart-bar text-gray-400 mr-3"></i>Experiencia y Precios Base</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
+            <div><label for="yearsOfExperience" class="block text-sm font-medium text-gray-700 mb-1">Años Exp.</label><input type="number" id="yearsOfExperience" name="yearsOfExperience" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+            <div><label for="casesPerformed" class="block text-sm font-medium text-gray-700 mb-1">Casos Realizados</label><input type="number" id="casesPerformed" name="casesPerformed" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+            <div><label for="priceRegular" class="block text-sm font-medium text-gray-700 mb-1">Precio Regular ($)</label><input type="number" step="0.01" id="priceRegular" name="priceRegular" placeholder="Consulta/Base" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+            <div><label for="priceWithApp" class="block text-sm font-medium text-gray-700 mb-1">Precio App ($)</label><input type="number" step="0.01" id="priceWithApp" name="priceWithApp" placeholder="Consulta/Base" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+        </div>
+    </div>
+    
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-star-half-alt text-gray-400 mr-3"></i>Calificación y Reseñas</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div><label for="rating" class="block text-sm font-medium text-gray-700 mb-1">Rating (0.0 - 5.0)</label><input type="number" step="0.1" id="rating" name="rating" min="0" max="5" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+            <div><label for="reviewCount" class="block text-sm font-medium text-gray-700 mb-1">Número de Reseñas</label><input type="number" id="reviewCount" name="reviewCount" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+        </div>
+    </div>
+
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-stethoscope text-gray-400 mr-3"></i>Procedimientos Específicos</h2>
+        <div id="procedures-container" class="space-y-4 mt-4"></div>
+        <button type="button" id="add-procedure-btn" class="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">+ Añadir Procedimiento</button>
+    </div>
+    
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-graduation-cap text-gray-400 mr-3"></i>Cursos Ofrecidos</h2>
+        <div id="courses-container" class="space-y-4 mt-4"></div>
+        <button type="button" id="add-course-btn" class="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">+ Añadir Curso</button>
+    </div>
+
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-images text-gray-400 mr-3"></i>Galería de Casos (Antes/Después)</h2>
+        <div id="gallery-container" class="space-y-4 mt-4"></div>
+        <button type="button" id="add-gallery-btn" class="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">+ Añadir Par de Imágenes</button>
+    </div>
+
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-university text-gray-400 mr-3"></i>Cuentas Bancarias</h2>
+        <div id="bank-accounts-container" class="space-y-4 mt-4"></div>
+        <button type="button" id="add-account-btn" class="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">+ Añadir Cuenta</button>
+    </div>
+
+    <div class="border-b border-gray-200 pb-6">
+        <h2 class="text-xl font-semibold text-gray-700 flex items-center"><i class="fab fa-paypal text-blue-500 mr-3"></i>Enlace de Pago Externo</h2>
+        <div class="mt-4">
+            <label for="paymentLink" class="block text-sm font-medium text-gray-700 mb-1">URL del Enlace de Pago</label>
+            <input type="url" id="paymentLink" name="paymentLink" placeholder="https://..." class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+        </div>
+    </div>
+
+    <div class="space-y-6">
+        <h2 class="text-xl font-semibold text-gray-700"><i class="fas fa-photo-film text-gray-400 mr-3"></i>Multimedia</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div><label for="imagePath" class="block text-sm font-medium text-gray-700 mb-1">URL Foto de Perfil</label><input type="url" id="imagePath" name="imagePath" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+            <div><label for="videoUrl" class="block text-sm font-medium text-gray-700 mb-1">URL Video Promocional</label><input type="url" id="videoUrl" name="videoUrl" class="w-full px-4 py-2 bg-gray-50 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></div>
+        </div>
+    </div>
+    
+    <div class="pt-6 text-right">
+        <button id="submit-btn" type="submit" class="inline-flex justify-center items-center py-3 px-8 border border-transparent shadow-sm text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all duration-300 transform hover:scale-105">
+            <span id="btn-text">Guardar Doctor</span>
+            <svg id="btn-spinner" class="hidden animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        </button>
+    </div>
+  </form>
+</div>
+
+<!-- SCRIPT COMPLETO CON TODAS LAS FUNCIONALIDADES -->
+<script type="module">
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+  import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const db = window.db;
+  const functions = getFunctions();
+
+  // --- Selectores del DOM ---
+  const doctorsView = document.getElementById('doctors-view');
+  const addDoctorView = document.getElementById('add-doctor-view');
+  const showCreateFormBtn = document.getElementById('show-create-form-btn');
+  const backToListBtn = document.getElementById('back-to-list-btn');
+  const doctorsTableBody = document.getElementById('doctors-table-body');
+  const doctorForm = document.getElementById('doctor-form');
+  const successMessage = document.getElementById('success-message');
+  const errorMessage = document.getElementById('error-message');
+  
+  const proceduresContainer = document.getElementById('procedures-container');
+  const addProcedureBtn = document.getElementById('add-procedure-btn');
+  const bankAccountsContainer = document.getElementById('bank-accounts-container');
+  const addAccountBtn = document.getElementById('add-account-btn');
+  const coursesContainer = document.getElementById('courses-container');
+  const addCourseBtn = document.getElementById('add-course-btn');
+  const galleryContainer = document.getElementById('gallery-container');
+  const addGalleryBtn = document.getElementById('add-gallery-btn');
+
+  // --- Lógica de Navegación y Carga ---
+  const showListView = () => { addDoctorView.classList.add('hidden'); doctorsView.classList.remove('hidden'); };
+  const showFormView = () => { doctorsView.classList.add('hidden'); addDoctorView.classList.remove('hidden'); };
+  backToListBtn.addEventListener('click', showListView);
+
+  const loadDoctors = async () => {
+    doctorsTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></td></tr>`;
+    try {
+      const querySnapshot = await getDocs(collection(db, "doctors"));
+      doctorsTableBody.innerHTML = '';
+      if (querySnapshot.empty) {
+        doctorsTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay médicos registrados.</td></tr>`;
+        return;
+      }
+      querySnapshot.forEach((docSnap) => {
+        const doctor = docSnap.data();
+        const docId = docSnap.id;
+        const row = `
+          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${doctor.name || 'N/A'}</th>
+            <td class="px-6 py-4">${doctor.specialty || 'N/A'}</td>
+            <td class="px-6 py-4">${doctor.city || 'N/A'}</td>
+            <td class="px-6 py-4 text-center space-x-4">
+              <button data-action="edit" data-id="${docId}" class="font-medium text-blue-600 hover:underline"><i class="fas fa-edit"></i></button>
+              <button data-action="delete" data-id="${docId}" class="font-medium text-red-600 hover:underline"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`;
+        doctorsTableBody.innerHTML += row;
+      });
+    } catch (error) {
+      console.error("Error al cargar médicos:", error);
+      doctorsTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Error al cargar datos.</td></tr>`;
+    }
+  };
+
+  doctorsTableBody.addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-action]');
+    if (!button) return;
+    const { action, id } = button.dataset;
+    if (action === 'edit') openEditForm(id);
+    else if (action === 'delete') handleDeleteDoctor(id);
+  });
+  
+  let procedureCount = 0, accountCount = 0, courseCount = 0, galleryCount = 0;
+
+  const resetAndShowCreateForm = () => {
+    doctorForm.reset();
+    document.getElementById('doctorId').value = '';
+    proceduresContainer.innerHTML = '';
+    bankAccountsContainer.innerHTML = '';
+    coursesContainer.innerHTML = '';
+    galleryContainer.innerHTML = '';
+    procedureCount = 0; accountCount = 0; courseCount = 0; galleryCount = 0;
+    addProcedureField();
+    addBankAccountField();
+    addCourseField();
+    addGalleryField();
+    document.getElementById('form-title').textContent = 'Registrar Nuevo Médico';
+    document.getElementById('btn-text').textContent = 'Guardar Doctor';
+    document.getElementById('auth-fieldset').disabled = false;
+    showFormView();
+  };
+  showCreateFormBtn.addEventListener('click', resetAndShowCreateForm);
+
+  const openEditForm = async (docId) => {
+    try {
+      const docRef = doc(db, "doctors", docId);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) throw new Error("Doctor no encontrado");
+      
+      const doctor = docSnap.data();
+      doctorForm.reset();
+      proceduresContainer.innerHTML = '';
+      bankAccountsContainer.innerHTML = '';
+      coursesContainer.innerHTML = '';
+      galleryContainer.innerHTML = '';
+      procedureCount = 0; accountCount = 0; courseCount = 0; galleryCount = 0;
+
+      for (const key in doctor) {
+        const field = doctorForm.elements[key];
+        if (field) {
+          if (field.type === 'textarea') field.value = doctor[key] || '';
+          else field.value = doctor[key] ?? '';
+        }
+      }
+
+      (doctor.services || []).forEach(proc => addProcedureField(proc));
+      (doctor.bankAccounts || []).forEach(acc => addBankAccountField(acc));
+      (doctor.courses || []).forEach(course => addCourseField(course));
+      (doctor.beforeAndAfterImageUrls || []).forEach(pair => addGalleryField(pair));
+
+      document.getElementById('doctorId').value = docId;
+      document.getElementById('form-title').textContent = 'Editar Médico';
+      document.getElementById('btn-text').textContent = 'Guardar Cambios';
+      document.getElementById('auth-fieldset').disabled = true;
+      
+      showFormView();
+    } catch (error) {
+      showError(`Error al cargar datos del doctor: ${error.message}`);
+    }
+  };
+
+  const handleDeleteDoctor = async (docId) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este médico?')) return;
+    try {
+      const deleteDoctorFunc = httpsCallable(functions, 'deleteDoctor');
+      await deleteDoctorFunc({ docId });
+      showSuccess('Médico eliminado exitosamente.');
+      loadDoctors();
+    } catch (error) {
+      showError(error.message);
+    }
+  };
+
+  // --- Lógica para campos dinámicos ---
+
+  const addProcedureField = (data = {}) => {
+    procedureCount++;
+    const div = document.createElement('div');
+    div.className = 'p-4 border rounded-lg bg-gray-50 dynamic-field-row';
+    div.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="text-xs font-medium text-gray-600">Nombre</label><input type="text" name="procedure_name" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.name || ''}"></div>
+        <div><label class="text-xs font-medium text-gray-600">Imagen (URL)</label><input type="url" name="procedure_image" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.image || ''}"></div>
+      </div>
+      <div class="mt-2"><label class="text-xs font-medium text-gray-600">Descripción</label><textarea name="procedure_description" rows="2" class="w-full text-sm px-3 py-2 bg-white rounded-lg">${data.description || ''}</textarea></div>
+      <div class="grid grid-cols-2 gap-4 mt-2">
+        <div><label class="text-xs font-medium text-gray-600">Precio Regular</label><input type="number" step="0.01" name="procedure_price_regular" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.priceRegular || ''}"></div>
+        <div><label class="text-xs font-medium text-gray-600">Precio App</label><input type="number" step="0.01" name="procedure_price_app" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.priceWithApp || ''}"></div>
+      </div>
+      <div class="text-right mt-2"><button type="button" class="text-red-500 text-xs hover:underline font-semibold">Eliminar Procedimiento</button></div>`;
+    div.querySelector('button').addEventListener('click', () => div.remove());
+    proceduresContainer.appendChild(div);
+  };
+  if (addProcedureBtn) addProcedureBtn.addEventListener('click', () => addProcedureField());
+  
+  const addBankAccountField = (data = {}) => {
+    accountCount++;
+    const div = document.createElement('div');
+    div.className = 'space-y-2 p-4 border rounded-lg bg-gray-50 dynamic-field-row';
+    div.innerHTML = `
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="text-xs font-medium text-gray-600">Banco</label>
+            <select name="bank_name" class="w-full text-sm px-3 py-2 bg-white rounded-lg">
+                <option value="produbanco" ${data.bankName === 'produbanco' ? 'selected' : ''}>Produbanco</option>
+                <option value="pacifico" ${data.bankName === 'pacifico' ? 'selected' : ''}>Pacifico</option>
+                <option value="bolivariano" ${data.bankName === 'bolivariano' ? 'selected' : ''}>Bolivariano</option>
+                <option value="pichincha" ${data.bankName === 'pichincha' ? 'selected' : ''}>Pichincha</option>
+            </select>
+        </div>
+        <div>
+            <label class="text-xs font-medium text-gray-600">Tipo de Cuenta</label>
+            <select name="bank_accountType" class="w-full text-sm px-3 py-2 bg-white rounded-lg">
+                <option value="Ahorro" ${data.accountType === 'Ahorro' ? 'selected' : ''}>Ahorro</option>
+                <option value="Corriente" ${data.accountType === 'Corriente' ? 'selected' : ''}>Corriente</option>
+            </select>
+        </div>
+      </div>
+      <div><label class="text-xs font-medium text-gray-600">Número de Cuenta</label><input type="text" name="bank_accountNumber" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.accountNumber || ''}"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="text-xs font-medium text-gray-600">Beneficiario</label><input type="text" name="bank_beneficiaryName" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.beneficiaryName || ''}"></div>
+        <div><label class="text-xs font-medium text-gray-600">CI/RUC</label><input type="text" name="bank_beneficiaryId" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.beneficiaryId || ''}"></div>
+      </div>
+      <div class="text-right"><button type="button" class="text-red-500 text-xs hover:underline font-semibold">Eliminar Cuenta</button></div>`;
+    div.querySelector('button').addEventListener('click', () => div.remove());
+    bankAccountsContainer.appendChild(div);
+  };
+  if (addAccountBtn) addAccountBtn.addEventListener('click', () => addBankAccountField());
+
+  const addCourseField = (data = {}) => {
+    courseCount++;
+    const div = document.createElement('div');
+    div.className = 'space-y-2 p-4 border rounded-lg bg-gray-50 dynamic-field-row';
+    div.innerHTML = `
+      <div><label class="text-xs font-medium text-gray-600">Título del Curso</label><input type="text" name="course_title" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.title || ''}"></div>
+      <div><label class="text-xs font-medium text-gray-600">Video del Curso (URL)</label><input type="url" name="course_videoUrl" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.videoUrl || ''}"></div>
+      <div class="text-right"><button type="button" class="text-red-500 text-xs hover:underline font-semibold">Eliminar Curso</button></div>`;
+    div.querySelector('button').addEventListener('click', () => div.remove());
+    coursesContainer.appendChild(div);
+  };
+  if (addCourseBtn) addCourseBtn.addEventListener('click', () => addCourseField());
+  
+  const addGalleryField = (data = {}) => {
+    galleryCount++;
+    const div = document.createElement('div');
+    div.className = 'p-4 border rounded-lg bg-gray-50 dynamic-field-row';
+    div.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="text-xs font-medium text-gray-600">Imagen ANTES (URL)</label><input type="url" name="gallery_before" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.before || ''}"></div>
+        <div><label class="text-xs font-medium text-gray-600">Imagen DESPUÉS (URL)</label><input type="url" name="gallery_after" class="w-full text-sm px-3 py-2 bg-white rounded-lg" value="${data.after || ''}"></div>
+      </div>
+      <div class="text-right mt-2"><button type="button" class="text-red-500 text-xs hover:underline font-semibold">Eliminar Par</button></div>`;
+    div.querySelector('button').addEventListener('click', () => div.remove());
+    galleryContainer.appendChild(div);
+  };
+  if (addGalleryBtn) addGalleryBtn.addEventListener('click', () => addGalleryField());
+
+  // --- RECOLECCIÓN Y ENVÍO DEL FORMULARIO ---
+  const collectProfileData = () => {
+    const data = Object.fromEntries(new FormData(doctorForm).entries());
+    const services = Array.from(proceduresContainer.querySelectorAll('.dynamic-field-row')).map(row => ({
+      name: row.querySelector('[name="procedure_name"]').value,
+      description: row.querySelector('[name="procedure_description"]').value,
+      image: row.querySelector('[name="procedure_image"]').value,
+      priceRegular: parseFloat(row.querySelector('[name="procedure_price_regular"]').value || 0),
+      priceWithApp: parseFloat(row.querySelector('[name="procedure_price_app"]').value || 0),
+    })).filter(s => s.name);
+    
+    const bankAccounts = Array.from(bankAccountsContainer.querySelectorAll('.dynamic-field-row')).map(row => ({
+      bankName: row.querySelector('[name="bank_name"]').value,
+      accountType: row.querySelector('[name="bank_accountType"]').value,
+      accountNumber: row.querySelector('[name="bank_accountNumber"]').value,
+      beneficiaryName: row.querySelector('[name="bank_beneficiaryName"]').value,
+      beneficiaryId: row.querySelector('[name="bank_beneficiaryId"]').value,
+    })).filter(acc => acc.bankName);
+
+    const courses = Array.from(coursesContainer.querySelectorAll('.dynamic-field-row')).map(row => ({
+      title: row.querySelector('[name="course_title"]').value,
+      videoUrl: row.querySelector('[name="course_videoUrl"]').value,
+    })).filter(course => course.title);
+
+    const beforeAndAfterImageUrls = Array.from(galleryContainer.querySelectorAll('.dynamic-field-row')).map(row => ({
+      before: row.querySelector('[name="gallery_before"]').value,
+      after: row.querySelector('[name="gallery_after"]').value,
+    })).filter(pair => pair.before && pair.after);
+
+    return {
+      name: data.name, city: data.city, specialty: data.specialty, subSpecialty: data.subSpecialty,
+      about: data.about,
+      mspRegistrationNumber: data.mspRegistrationNumber, senescytRegistrationNumber: data.senescytRegistrationNumber,
+      yearsOfExperience: parseInt(data.yearsOfExperience) || 0, casesPerformed: parseInt(data.casesPerformed) || 0,
+      priceRegular: parseFloat(data.priceRegular) || 0, priceWithApp: parseFloat(data.priceWithApp) || 0,
+      rating: parseFloat(data.rating) || 0, reviewCount: parseInt(data.reviewCount) || 0,
+      imagePath: data.imagePath, videoUrl: data.videoUrl || "",
+      services,
+      bankAccounts,
+      paymentLink: data.paymentLink || "", 
+      courses,
+      beforeAndAfterImageUrls,
+    };
+  };
+
+  doctorForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const btnSpinner = document.getElementById('btn-spinner');
+    submitBtn.disabled = true;
+    btnText.classList.add('hidden');
+    btnSpinner.classList.remove('hidden');
+    hideMessages();
+
+    const docId = document.getElementById('doctorId').value;
+    const isEditMode = !!docId;
+
+    try {
+      const profileData = collectProfileData();
+      if (isEditMode) {
+        const updateDoctorFunc = httpsCallable(functions, 'updateDoctor');
+        await updateDoctorFunc({ docId, profileData });
+        showSuccess('Médico actualizado exitosamente.');
+      } else {
+        const authData = { email: doctorForm.elements['authEmail'].value, password: doctorForm.elements['authPassword'].value };
+        const createDoctorFunc = httpsCallable(functions, 'createDoctor');
+        const result = await createDoctorFunc({ auth: authData, profile: profileData });
+        if (!result.data.success) throw new Error(result.data.error || 'Falló la Cloud Function');
+        showSuccess('Médico creado exitosamente.');
+      }
+      showListView();
+      loadDoctors();
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      submitBtn.disabled = false;
+      btnText.classList.remove('hidden');
+      btnSpinner.classList.add('hidden');
+    }
+  });
+
+  // --- FUNCIONES AUXILIARES ---
+  const showSuccess = (message) => {
+    document.getElementById('success-text').textContent = message;
+    successMessage.classList.remove('hidden');
+    setTimeout(() => successMessage.classList.add('hidden'), 4000);
+  };
+  const showError = (message) => {
+    document.getElementById('error-text').textContent = message;
+    errorMessage.classList.remove('hidden');
+    setTimeout(() => errorMessage.classList.add('hidden'), 4000);
+  };
+  const hideMessages = () => {
+    successMessage.classList.add('hidden');
+    errorMessage.classList.add('hidden');
+  };
+
+  // Carga inicial
+  loadDoctors();
+</script>
