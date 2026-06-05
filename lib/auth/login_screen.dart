@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Agregado: Para actualizar la DB
+import 'package:shared_preferences/shared_preferences.dart'; // Agregado: Para leer la selección
 import 'auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -44,8 +46,33 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  // --- NUEVA LÓGICA DE ACTUALIZACIÓN ---
+  // Esta función asegura que la ciudad elegida en Onboarding se guarde en el usuario
+  Future<void> _updateUserCityInFirestore() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final selectedCity = prefs.getString('user_city');
+
+      // Si hay una ciudad seleccionada en el dispositivo, actualizamos al usuario
+      if (selectedCity != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set(
+            {'city': selectedCity},
+            SetOptions(merge: true) // merge: true para no borrar otros datos
+        );
+      }
+    } catch (e) {
+      debugPrint("Error actualizando la ciudad del usuario: $e");
+      // No interrumpimos el flujo si esto falla, pero queda registrado
+    }
+  }
+
   Future<void> _login() async {
-    // AHORA ESTO SÍ FUNCIONARÁ PORQUE EL FORM EXISTE EN EL BUILD
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() => _isLoading = true);
@@ -56,6 +83,9 @@ class _LoginScreenState extends State<LoginScreen>
         _passwordController.text.trim(),
       );
 
+      // APLICAMOS LA ACTUALIZACIÓN DE CIUDAD AQUÍ
+      await _updateUserCityInFirestore();
+
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
@@ -63,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         _showFeedbackDialog(
           title: "Error al iniciar sesión",
-          message: e.toString().replaceFirst("Exception: ", ""),
+          message: "Por favor, revisa tu correo o contraseña e intenta nuevamente.",
           isError: true,
         );
       }
@@ -76,12 +106,16 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isLoading = true);
     try {
       await loginMethod();
+
+      // APLICAMOS LA ACTUALIZACIÓN DE CIUDAD AQUÍ TAMBIÉN
+      await _updateUserCityInFirestore();
+
       if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) {
         _showFeedbackDialog(
           title: "Error de Autenticación",
-          message: e.toString().replaceFirst("Exception: ", ""),
+          message: "Ocurrió un problema al intentar iniciar sesión con tu cuenta. Por favor, intenta nuevamente.",
           isError: true,
         );
       }
@@ -94,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (_emailController.text.trim().isEmpty) {
       _showFeedbackDialog(
         title: 'Correo requerido',
-        message: 'Ingresa tu correo para recuperar la contraseña.',
+        message: 'Ingresa tu correo en el campo superior para recuperar tu contraseña.',
         isError: true,
       );
       return;
@@ -125,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen>
                 if (mounted) {
                   _showFeedbackDialog(
                     title: 'Error',
-                    message: e.toString().replaceFirst("Exception: ", ""),
+                    message: "No se pudo enviar el correo. Verifica que la dirección sea correcta y vuelve a intentarlo.",
                     isError: true,
                   );
                 }
@@ -153,9 +187,13 @@ class _LoginScreenState extends State<LoginScreen>
               color: isError ? Colors.red : primaryBlue,
             ),
             const SizedBox(width: 10),
-            Text(title,
-                style:
-                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            // AQUÍ ESTÁ LA SOLUCIÓN: Agregamos Expanded para evitar el RenderFlex overflow
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         content: Text(message, style: const TextStyle(fontSize: 16)),
@@ -193,7 +231,6 @@ class _LoginScreenState extends State<LoginScreen>
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
-              // CORRECCIÓN AQUÍ: Se añade el widget Form
               child: Form(
                 key: _formKey,
                 child: Column(

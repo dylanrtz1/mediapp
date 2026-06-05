@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/doctor_model.dart';
-import '../widgets/drawer_and_screens.dart'; // Asegúrate de que este import sea correcto según tu estructura
+import '../widgets/drawer_and_screens.dart';
 import 'doctor_profile_screen.dart';
 import 'doctors_by_category_screen.dart';
 import '../auth/auth_service.dart';
@@ -86,15 +86,56 @@ class _HomeScreenState extends State<HomeScreen> {
     _videoController = null;
     _isYouTubeVideo = false;
     _videoInitialized = false;
-    if (url.isEmpty) { if (mounted) setState(() {}); return; }
-    if (url.contains('youtube.com') || url.contains('youtu.be')) { if (mounted) setState(() => _isYouTubeVideo = true); return; }
+
+    if (url.isEmpty) {
+      if (mounted) setState(() {});
+      return;
+    }
+
+    if (url.contains('youtube.com') || url.contains('youtu.be')) {
+      if (mounted) setState(() => _isYouTubeVideo = true);
+      return;
+    }
+
+    final cleanUrl = url.split('?').first.toLowerCase();
+    final isImage = cleanUrl.endsWith('.jpg') ||
+        cleanUrl.endsWith('.jpeg') ||
+        cleanUrl.endsWith('.png') ||
+        cleanUrl.endsWith('.gif');
+
+    if (isImage) {
+      return;
+    }
+
     try {
-      _videoController = VideoPlayerController.networkUrl(Uri.parse(url));
-      await _videoController?.initialize();
+      // Forzar HTTPS
+      String secureUrl = url.replaceFirst('http://', 'https://');
+
+      // Inicializamos directo de la URL con los Headers para Huawei (Sin caché)
+      _videoController = VideoPlayerController.networkUrl(
+        Uri.parse(secureUrl),
+        httpHeaders: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+          'Accept': '*/*'
+        },
+      );
+
+      // Añadir Timeout por seguridad
+      await _videoController?.initialize().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException("El video tardó mucho en cargar.");
+        },
+      );
+
       await _videoController?.setLooping(true);
       if (mounted) setState(() => _videoInitialized = true);
+
     } catch (e) {
       print("Error inicializando el video: $e");
+      _videoController?.dispose();
+      _videoController = null;
+      if (mounted) setState(() {});
     }
   }
 
@@ -124,19 +165,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- LÓGICA DE LIMPIEZA DE TEXTO (NORMALIZACIÓN) ---
   String _normalizeText(String text) {
-    // 1. Convertir a minúsculas
     String str = text.toLowerCase();
-
-    // 2. Mapa de caracteres a reemplazar (con tilde -> sin tilde, ñ -> n)
     const String withDiacritics = 'áéíóúüñ';
     const String withoutDiacritics = 'aeiouun';
-
     for (int i = 0; i < withDiacritics.length; i++) {
       str = str.replaceAll(withDiacritics[i], withoutDiacritics[i]);
     }
-
     return str.trim();
   }
 
@@ -148,15 +183,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (query.trim().isEmpty) return;
 
-    // Normalizamos lo que escribió el usuario (ej: "Bariátrica" -> "bariatrica")
     final cleanQuery = _normalizeText(query);
 
     final filteredDocs = _allDoctors.where((doc) {
-      // Normalizamos los datos del doctor
       final cleanName = _normalizeText(doc.name);
       final cleanSpecialty = _normalizeText(doc.specialty);
-
-      // Buscamos coincidencia en Nombre O Especialidad (Categoría)
       return cleanName.contains(cleanQuery) || cleanSpecialty.contains(cleanQuery);
     }).toList();
 
@@ -276,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _showGuestDialog();
       return;
     }
-    // Normalizamos también aquí para asegurar consistencia
+
     final cleanSpecialty = _normalizeText(specialty);
 
     final filteredDocs = _allDoctors.where((doctor) =>
@@ -292,8 +323,6 @@ class _HomeScreenState extends State<HomeScreen> {
       drawer: AppDrawer(isGuest: _isGuest, onSignOut: _showLogoutConfirmationDialog),
       backgroundColor: const Color(0xFF00A9FF),
 
-
-      //  Footer fijo de verdad (no se desplaza ni tapa contenido)
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
@@ -315,7 +344,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       body: Stack(
         children: [
-          // Contenido scrollable SIN footer encima
           _isLoading
               ? const Center(child: CircularProgressIndicator(color: Colors.white))
               : RefreshIndicator(
@@ -323,7 +351,6 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                // espacio para la barra fija superior
                 SizedBox(height: MediaQuery.of(context).padding.top + _fixedBarHeight),
                 _buildHeader(),
                 const SizedBox(height: 24),
@@ -347,7 +374,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // AppBar fijo
           Positioned(top: 0, left: 0, right: 0, child: _buildFixedAppBar()),
         ],
       ),
@@ -402,7 +428,7 @@ class _HomeScreenState extends State<HomeScreen> {
           absorbing: _isGuest,
           child: TextField(
             controller: _searchController,
-            textInputAction: TextInputAction.search, // Cambia el botón del teclado a "Buscar"
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: 'Buscar doctor o procedimiento...',
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
@@ -434,9 +460,36 @@ class _HomeScreenState extends State<HomeScreen> {
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: Builder(builder: (context) {
-            if (_quienesSomosVideoUrl.isEmpty) {
-              return Container(color: Colors.grey.shade200, child: Center(child: Text('Video "Quiénes Somos" no configurado.', style: TextStyle(color: Colors.grey.shade600), textAlign: TextAlign.center)));
+            final url = _quienesSomosVideoUrl;
+
+            if (url.isEmpty) {
+              return Container(color: Colors.grey.shade200, child: Center(child: Text('Contenido "Quiénes Somos" no configurado.', style: TextStyle(color: Colors.grey.shade600), textAlign: TextAlign.center)));
             }
+
+            final cleanUrl = url.split('?').first.toLowerCase();
+
+            final isImage = cleanUrl.endsWith('.jpg') ||
+                cleanUrl.endsWith('.jpeg') ||
+                cleanUrl.endsWith('.png') ||
+                cleanUrl.endsWith('.gif');
+
+            if (isImage) {
+              return Image.network(
+                url,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    color: Colors.grey.shade800,
+                    child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(color: Colors.red.shade100, child: Center(child: Text('Error cargando imagen.', style: TextStyle(color: Colors.red.shade800))));
+                },
+              );
+            }
+
             if (_isYouTubeVideo) {
               return Container(
                 color: Colors.black,
@@ -446,11 +499,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 10),
                     ElevatedButton.icon(
                       onPressed: () async {
-                        if (_quienesSomosVideoUrl.isNotEmpty) {
-                          final url = Uri.parse(_quienesSomosVideoUrl);
-                          if (await canLaunchUrl(url)) {
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
-                          }
+                        final uri = Uri.parse(url);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
                         }
                       },
                       icon: const Icon(FontAwesomeIcons.youtube, color: Colors.red),
@@ -461,6 +512,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             }
+
             if (_videoController != null && _videoInitialized) {
               return GestureDetector(
                 onTap: () => setState(() { _videoController!.value.isPlaying ? _videoController!.pause() : _videoController!.play(); }),
@@ -470,6 +522,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ]),
               );
             }
+
             return Container(color: Colors.grey.shade800, child: const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(color: Colors.white, strokeWidth: 2), SizedBox(height: 10), Text('Cargando video...', style: TextStyle(color: Colors.white))])));
           }),
         ),
@@ -491,14 +544,12 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () => _navigateToCategory(specialtyId, title),
       child: Column(
         children: [
-          // Borde blanco exterior limpio
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 4),
             ),
-            // Imagen circular sin sombras ni degradados
             child: ClipOval(
               child: SizedBox(
                 width: 84,

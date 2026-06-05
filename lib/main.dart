@@ -23,12 +23,31 @@ Future<void> _requestNotificationPermission() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  // === ESCUDO (TRY/CATCH) PARA EVITAR QUE LA APP SE CONGELE ===
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("==================================================");
+    debugPrint("CRÍTICO: FIREBASE NATIVO FALLÓ AL INICIALIZARSE");
+    debugPrint("Error exacto: $e");
+    debugPrint("==================================================");
+    // Aunque falle, el código continuará y ejecutará runApp
+  }
+
   await initializeDateFormatting('es_ES', null);
-  await _requestNotificationPermission();
+
   runApp(const MyApp());
+
+  Future.microtask(() async {
+    try {
+      await FirebaseMessaging.instance.requestPermission();
+    } catch (e) {
+      debugPrint("Error al pedir permisos: $e");
+    }
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -183,6 +202,14 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (Firebase.apps.isEmpty) {
+      return const Scaffold(
+        body: Center(
+          child: Text("Firebase no pudo inicializar. Revisa los logs."),
+        ),
+      );
+    }
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
@@ -195,7 +222,6 @@ class AuthGate extends StatelessWidget {
           if (user.isAnonymous) {
             return const HomeScreen();
           }
-          // Usamos CheckUserProfile para verificar los datos de Firestore
           return CheckUserProfile(userId: user.uid);
         } else {
           return const OnboardingScreen();
@@ -209,12 +235,8 @@ class CheckUserProfile extends StatelessWidget {
   final String userId;
   const CheckUserProfile({super.key, required this.userId});
 
-  // Función auxiliar para obtener el valor del campo como String no nulo,
-  // asegurando que sea una cadena vacía si no existe o es null.
   String _safeGetString(Map<String, dynamic> data, String key) {
     if (data.containsKey(key)) {
-      // Usamos .toString() para manejar el caso de que el valor sea un número o null,
-      // y luego trim() para eliminar espacios y asegurarnos que no sea solo " ".
       return (data[key]?.toString().trim() ?? '');
     }
     return '';
@@ -230,53 +252,25 @@ class CheckUserProfile extends StatelessWidget {
         }
 
         if (!firestoreSnapshot.hasData || !firestoreSnapshot.data!.exists) {
-          debugPrint("DEBUG AUTH: Documento de usuario NO existe en Firestore. Redirigiendo a Completar Perfil.");
           return const CompleteProfileScreen();
         }
 
         final userData = firestoreSnapshot.data!.data() as Map<String, dynamic>;
 
-        // Lógica de verificación de 3 campos obligatorios (nombre, apellido, telefono)
         final nombre = _safeGetString(userData, 'nombre');
         final apellido = _safeGetString(userData, 'apellido');
         final telefono = _safeGetString(userData, 'telefono');
 
-        // El perfil está completo si NINGUNO de los 3 campos está vacío.
         final isProfileComplete = nombre.isNotEmpty && apellido.isNotEmpty && telefono.isNotEmpty;
-
-        // *** LÓGICA CLAVE AÑADIDA ***
         final isFromCache = firestoreSnapshot.data!.metadata.isFromCache;
 
-        // Si la verificación falla Y los datos provienen del caché,
-        // esperamos el siguiente evento del Stream que vendrá del servidor.
         if (!isProfileComplete && isFromCache) {
-          debugPrint("DEBUG AUTH: Perfil incompleto DETECTADO EN CACHÉ. Esperando datos del servidor...");
           return const Scaffold(body: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3ba4f3)))));
         }
-
-        // *** LOG DE DEBUGGING: Imprime todos los datos del documento (movido abajo) ***
-        debugPrint("-------------------------------------------------------");
-        debugPrint("DEBUG AUTH: Datos de usuario cargados para UID: $userId");
-        debugPrint("DEBUG AUTH: Fuente de datos: ${isFromCache ? 'CACHE' : 'SERVER'}");
-        userData.forEach((key, value) {
-          debugPrint("DEBUG AUTH: Campo '$key': '$value'");
-        });
-        debugPrint("-------------------------------------------------------");
-
-        // *** LOG DE DEBUGGING: Imprime el resultado de la verificación ***
-        debugPrint("DEBUG AUTH: Verificación de Campos:");
-        debugPrint("DEBUG AUTH: Nombre ('$nombre') OK: ${nombre.isNotEmpty}");
-        debugPrint("DEBUG AUTH: Apellido ('$apellido') OK: ${apellido.isNotEmpty}");
-        debugPrint("DEBUG AUTH: Teléfono ('$telefono') OK: ${telefono.isNotEmpty}");
-        debugPrint("DEBUG AUTH: Resultado Final (isProfileComplete): $isProfileComplete");
-        debugPrint("-------------------------------------------------------");
-
 
         if (isProfileComplete) {
           return const HomeScreen();
         } else {
-          // Si alguno de los campos es vacío (nombre, apellido o telefono),
-          // redirige a completar perfil.
           return const CompleteProfileScreen();
         }
       },

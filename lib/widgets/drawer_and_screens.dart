@@ -733,7 +733,7 @@ class HelpAndSupportScreen extends StatelessWidget {
             children: [
               Icon(Icons.support_agent, color: Colors.white, size: 28),
               SizedBox(width: 8),
-              Text('+593 594 352 145', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text('+593 97 907 2591', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
             ],
           ),
           SizedBox(height: 30),

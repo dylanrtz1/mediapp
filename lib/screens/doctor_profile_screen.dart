@@ -14,7 +14,7 @@ import 'package:video_player/video_player.dart';
 import '../models/doctor_model.dart';
 
 // =============================================================================
-// COLORES Y ESTILOS GLOBALES (NUEVO DISEÑO)
+// COLORES Y ESTILOS GLOBALES
 // =============================================================================
 
 const Color kPrimaryColor = Color(0xFF00A9FF);
@@ -101,7 +101,7 @@ class DoctorProfileScreen extends StatefulWidget {
 class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
-  String _selectedTab = 'Sobre mí'; // 'Sobre mí' o 'Cursos'
+  String _selectedTab = 'Sobre mí';
 
   @override
   void initState() {
@@ -122,7 +122,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         _videoController?.play();
       }
     } catch (e) {
-      debugPrint('Error al inicializar el video del perfil: $e');
+      debugPrint('Error video: $e');
     }
   }
 
@@ -148,11 +148,20 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
             SliverList(
               delegate: SliverChildListDelegate(
                 [
-                  const SizedBox(height: 30), // Espacio para el avatar superpuesto
-                  Text(
-                    widget.doctor.name,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kWhiteColor, shadows: [Shadow(blurRadius: 5, color: Colors.black26)]),
+                  const SizedBox(height: 30),
+                  // Nombre del Doctor con ajuste de texto
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Text(
+                      widget.doctor.name,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: kWhiteColor,
+                        shadows: [Shadow(blurRadius: 5, color: Colors.black26)],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 15),
                   _buildCredentialsSection(),
@@ -178,7 +187,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
   SliverAppBar _buildSliverAppBar() {
     const double kAvatarRadius = 55.0;
-    const double kAvatarOverlap = 35.0; // qué tanto cuelga sobre el borde del AppBar
+    const double kAvatarOverlap = 35.0;
 
     return SliverAppBar(
       expandedHeight: 250.0,
@@ -186,7 +195,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       backgroundColor: kPrimaryColor,
       elevation: 0,
       leading: const BackButton(color: kWhiteColor),
-
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
@@ -204,7 +212,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(color: kPrimaryColor),
               ),
-
             // Gradiente para legibilidad
             Container(
               decoration: BoxDecoration(
@@ -221,8 +228,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 ),
               ),
             ),
-
-            // Botón play/pause
             if (_isVideoInitialized && _videoController != null)
               Center(
                 child: IconButton(
@@ -245,23 +250,19 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ],
         ),
       ),
-
-      // Avatar + badge de estrellas fuera del FlexibleSpaceBar
       bottom: PreferredSize(
-        preferredSize: Size.fromHeight(kAvatarRadius + kAvatarOverlap),
+        preferredSize: const Size.fromHeight(kAvatarRadius + kAvatarOverlap),
         child: SizedBox(
           height: kAvatarRadius + kAvatarOverlap,
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              // Avatar con glow
               Positioned(
                 top: -kAvatarOverlap,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    // Glow + aro blanco + avatar
                     Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -292,8 +293,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                         ),
                       ),
                     ),
-
-                    // ⭐ Badge de calificación en esquina inferior derecha
                     Positioned(
                       right: -6,
                       bottom: -2,
@@ -337,23 +336,56 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     );
   }
 
+  // OPTIMIZADO: Usa Wrap para que si los registros son largos, bajen de línea
   Widget _buildCredentialsSection() {
     return WhiteCard(
       margin: const EdgeInsets.symmetric(horizontal: 30),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: Column(
         children: [
-          const Icon(Icons.verified_user, color: Colors.green),
-          const SizedBox(width: 10),
-          Flexible(child: Text('MSP: ${widget.doctor.mspRegistrationNumber}', style: const TextStyle(color: kDarkTextColor, fontSize: 12, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
-          const Text(' • ', style: TextStyle(color: kDarkTextColor)),
-          Flexible(child: Text('SENESCYT: ${widget.doctor.senescytRegistrationNumber}', style: const TextStyle(color: kDarkTextColor, fontSize: 12, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8.0,
+            runSpacing: 4.0,
+            children: [
+              // Icono y MSP juntos
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.verified_user, color: Colors.green, size: 20),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'MSP: ${widget.doctor.mspRegistrationNumber}',
+                      style: const TextStyle(
+                        color: kDarkTextColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // Separador visual solo si hay espacio, sino salta
+              const Text('•', style: TextStyle(color: kGreyTextColor)),
+              // SENESCYT
+              Text(
+                'SENESCYT: ${widget.doctor.senescytRegistrationNumber}',
+                style: const TextStyle(
+                  color: kDarkTextColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
+  // OPTIMIZADO: FittedBox para números grandes
   Widget _buildStats() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -375,26 +407,32 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   }
 
   Widget _buildStatItem({required String count, required String label}) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: const TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
-            color: kWhiteColor,
+    return Flexible(
+      child: Column(
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              count,
+              style: const TextStyle(
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
+                color: kWhiteColor,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            color: kWhiteColor,
-            fontSize: 12,
-            fontWeight: FontWeight.bold, //  Negrita aplicada
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: kWhiteColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -434,10 +472,8 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-          isSelected ? kPrimaryColor : kWhiteColor, // Fondo más notorio
-          foregroundColor:
-          isSelected ? kWhiteColor : kPrimaryColor, // Texto contrastante
+          backgroundColor: isSelected ? kPrimaryColor : kWhiteColor,
+          foregroundColor: isSelected ? kWhiteColor : kPrimaryColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
             side: BorderSide(
@@ -449,18 +485,20 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           elevation: isSelected ? 6 : 2,
           shadowColor: Colors.black.withOpacity(0.25),
         ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            letterSpacing: 0.5,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       ),
     );
   }
-
 
   Widget _buildDynamicContent() {
     return AnimatedSwitcher(
@@ -609,14 +647,11 @@ class CaseGalleryGrid extends StatelessWidget {
   void _openImageViewer(BuildContext context, String imageUrl, String name) {
     showDialog(
       context: context,
-      barrierDismissible: false, // evita cerrar tocando fuera
+      barrierDismissible: false,
       builder: (context) {
         return Stack(
           children: [
-            // Fondo oscuro con fade
             Container(color: Colors.black.withOpacity(0.9)),
-
-            // Imagen centrada
             Center(
               child: InteractiveViewer(
                 child: Image.network(
@@ -625,8 +660,6 @@ class CaseGalleryGrid extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Botón de cerrar (X)
             Positioned(
               top: 40,
               right: 20,
@@ -648,7 +681,6 @@ class CaseGalleryGrid extends StatelessWidget {
     );
   }
 }
-
 
 // =============================================================================
 // PANTALLA EXCLUSIVA DE SERVICIOS
@@ -810,7 +842,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     );
   }
 
-  // --- WIDGET ACTUALIZADO (EFECTO BOTÓN / INKWELL) ---
+  // --- OPTIMIZADO: SIN ALTURA FIJA, TEXTO FLUIDO ---
   Widget _buildServiceItem(Map<String, dynamic> service) {
     final serviceId = service['id'] as String;
     final name = (service['name'] ?? 'Servicio').toString();
@@ -818,7 +850,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
     final price = (service['priceWithApp'] as num? ?? 0.0).toDouble();
     final imageUrl = (service['image'] ?? '').toString();
 
-    // Verificamos si este servicio está seleccionado para el badge
     final int quantity = _selectedServices[serviceId] ?? 0;
 
     return Container(
@@ -835,13 +866,12 @@ class _ServicesScreenState extends State<ServicesScreen> {
           )
         ],
       ),
-      // Usamos Material transparente para que el InkWell funcione y muestre el ripple sobre el color blanco
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(20.0),
         child: InkWell(
           borderRadius: BorderRadius.circular(20.0),
-          splashColor: kPrimaryColor.withOpacity(0.1), // Efecto de ola suave en azul
+          splashColor: kPrimaryColor.withOpacity(0.1),
           highlightColor: kPrimaryColor.withOpacity(0.05),
           onTap: () {
             _updateServiceQuantity(serviceId, 1);
@@ -857,124 +887,110 @@ class _ServicesScreenState extends State<ServicesScreen> {
           },
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: SizedBox(
-              height: 130, //  más alto y aireado
-              child: Stack(
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // IMAGEN del servicio
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.network(
-                          imageUrl,
-                          width: 100, //  más ancho
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) => Container(
-                            width: 100,
-                            height: double.infinity,
-                            color: Colors.grey.shade200,
-                            child: const Icon(Icons.image_not_supported, color: Colors.grey),
-                          ),
+                  // IMAGEN FIJA: Asegura que no se deforme ni dependa de la altura del texto
+                  SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(
+                          color: Colors.grey.shade200,
+                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
                         ),
                       ),
-                      const SizedBox(width: 15),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
 
-                      // CONTENIDO DE TEXTO
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  // CONTENIDO FLEXIBLE: Se expande verticalmente lo necesario
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Título y Badge
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // --- Título ---
-                            Padding(
-                              padding: const EdgeInsets.only(right: 20.0), // Espacio para el badge
+                            Expanded(
                               child: Text(
                                 name.toUpperCase(),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: kPrimaryColor, // Siempre azul, no cambia
+                                  color: kPrimaryColor,
                                 ),
-                                maxLines: 2, // permite hasta 2 líneas
-                                overflow: TextOverflow.ellipsis,
+                                // Eliminado maxLines para que baje si es necesario
                               ),
                             ),
-                            const SizedBox(height: 6),
-
-                            // --- Descripción ---
-                            Expanded(
-                              child: SingleChildScrollView(
-                                physics: const BouncingScrollPhysics(),
-                                child: Text(
-                                  desc,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: kPrimaryColor,
-                                    height: 1.3,
-                                  ),
-                                  softWrap: true,
-                                ),
-                              ),
-                            ),
-
-                            // --- Precio (abajo a la derecha) ---
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            if (quantity > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                margin: const EdgeInsets.only(left: 4),
                                 decoration: BoxDecoration(
-                                  color: kWhiteColor,
+                                  color: kPrimaryColor,
                                   borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.08),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
                                 ),
                                 child: Text(
-                                  '\$${price.toStringAsFixed(2)}',
+                                  'x$quantity',
                                   style: const TextStyle(
-                                    fontSize: 18,
+                                    color: kWhiteColor,
                                     fontWeight: FontWeight.bold,
-                                    color: kPrimaryColor,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(height: 6),
 
-                  // INDICADOR DE SELECCIÓN (BADGE)
-                  if (quantity > 0)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: const BoxDecoration(
-                          color: kPrimaryColor,
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(16),
-                            bottomLeft: Radius.circular(16),
-                          ),
-                        ),
-                        child: Text(
-                          'x$quantity',
+                        // Descripción: Texto completo, sin scroll
+                        Text(
+                          desc,
                           style: const TextStyle(
-                            color: kWhiteColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: 13,
+                            color: kPrimaryColor,
+                            height: 1.3,
                           ),
                         ),
-                      ),
+
+                        const SizedBox(height: 10),
+
+                        // Precio: Alineado a la derecha al final
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: kWhiteColor,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              '\$${price.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: kPrimaryColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             ),
@@ -987,9 +1003,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
   Widget _buildBookingBar() {
     return Container(
       padding: EdgeInsets.fromLTRB(20, 15, 20, MediaQuery.of(context).padding.bottom + 10),
-      decoration:  BoxDecoration(
+      decoration: BoxDecoration(
         color: kWhiteColor,
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
         ),
@@ -1032,10 +1048,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
     );
   }
 }
-
-// =============================================================================
-// OTRAS PANTALLAS (Carrito, Pago, etc.)
-// =============================================================================
 
 class CartScreen extends StatefulWidget {
   final Doctor doctor;
@@ -1165,13 +1177,19 @@ class PaymentOptionsScreen extends StatelessWidget {
   void _showBankAccounts(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => BankAccountViewer(
-        accounts: doctor.bankAccounts,
-        onProceed: () {
-          Navigator.pop(context);
-          _navigateToBilling(context, PaymentMethod.transfer);
-        },
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: BankAccountViewer(
+          accounts: doctor.bankAccounts,
+          onProceed: () {
+            Navigator.pop(context);
+            _navigateToBilling(context, PaymentMethod.transfer);
+          },
+        ),
       ),
     );
   }
@@ -1195,7 +1213,6 @@ class PaymentOptionsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 26),
                 decoration: const BoxDecoration(
@@ -1244,8 +1261,6 @@ class PaymentOptionsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 26),
-
-              // === Título MÉTODOS DE PAGO ===
               const Center(
                 child: Text(
                   'MÉTODOS DE PAGO',
@@ -1258,8 +1273,6 @@ class PaymentOptionsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-
-              // === Pastilla: Transferencias ===
               _PillButton(
                 onTap: hasBankAccounts ? () => _showBankAccounts(context) : null,
                 child: Column(
@@ -1284,8 +1297,6 @@ class PaymentOptionsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // === Pastilla: Tarjetas ===
               _PillButton(
                 onTap: canPayWithCard ? () => _navigateToBilling(context, PaymentMethod.card) : null,
                 child: Column(
@@ -1329,7 +1340,6 @@ class PaymentOptionsScreen extends StatelessWidget {
     );
   }
 }
-
 
 class _PillButton extends StatelessWidget {
   final Widget child;
@@ -1378,7 +1388,6 @@ class BillingDetailsScreen extends StatefulWidget {
     required this.selectedServices,
     required this.paymentMethod,
   });
-
 
   @override
   State<BillingDetailsScreen> createState() => _BillingDetailsScreenState();
@@ -1450,7 +1459,7 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
-            backgroundColor: kPrimaryColor, // FONDO AZUL ESTILO "GUEST" O "SERVICES"
+            backgroundColor: kPrimaryColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Row(
               children: [
@@ -1467,8 +1476,8 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
               ElevatedButton(
                 onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white, // Botón blanco
-                  foregroundColor: kPrimaryColor, // Texto azul
+                  backgroundColor: Colors.white,
+                  foregroundColor: kPrimaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
                 child: const Text('Entendido'),
@@ -1483,7 +1492,6 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -1515,15 +1523,12 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: Column(
               children: [
-
                 Image.asset(
                   'assets/images/logo2.png',
                   height: 130,
                   fit: BoxFit.contain,
                   color: kWhiteColor,
                 ),
-
-                // Tarjeta blanca grande con esquinas muy redondeadas
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -1542,7 +1547,6 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // Título
                         Text(
                           'DATOS DE FACTURACIÓN',
                           textAlign: TextAlign.center,
@@ -1554,23 +1558,18 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-
-                        // Píldoras alternadas (lleno/borde) como en la imagen
-                        _pillTextField(controller: _nameController,  hint: 'NOMBRES',                         keyboardType: TextInputType.name,          filledBlue: true,  validator: (v){ if (v==null||v.isEmpty) return 'Campo requerido'; return null; }),
+                        _pillTextField(controller: _nameController, hint: 'NOMBRES', keyboardType: TextInputType.name, filledBlue: true, validator: (v) { if (v == null || v.isEmpty) return 'Campo requerido'; return null; }),
                         const SizedBox(height: 14),
-                        _pillTextField(controller: _lastNameController, hint: 'APELLIDOS',                      keyboardType: TextInputType.name,          filledBlue: false, validator: (v){ if (v==null||v.isEmpty) return 'Campo requerido'; return null; }),
+                        _pillTextField(controller: _lastNameController, hint: 'APELLIDOS', keyboardType: TextInputType.name, filledBlue: false, validator: (v) { if (v == null || v.isEmpty) return 'Campo requerido'; return null; }),
                         const SizedBox(height: 14),
-                        _pillTextField(controller: _idController,     hint: 'CÉDULA DE IDENTIDAD / RUC',       keyboardType: TextInputType.number,        filledBlue: true,  validator: (v){ if (v==null||v.isEmpty) return 'Campo requerido'; return null; }),
+                        _pillTextField(controller: _idController, hint: 'CÉDULA DE IDENTIDAD / RUC', keyboardType: TextInputType.number, filledBlue: true, validator: (v) { if (v == null || v.isEmpty) return 'Campo requerido'; return null; }),
                         const SizedBox(height: 14),
-                        _pillTextField(controller: _emailController,  hint: 'CORREO ELECTRÓNICO',              keyboardType: TextInputType.emailAddress,  filledBlue: false, validator: (v){ if (v==null||v.isEmpty) return 'Campo requerido'; return null; }),
+                        _pillTextField(controller: _emailController, hint: 'CORREO ELECTRÓNICO', keyboardType: TextInputType.emailAddress, filledBlue: false, validator: (v) { if (v == null || v.isEmpty) return 'Campo requerido'; return null; }),
                         const SizedBox(height: 14),
-                        _pillTextField(controller: _phoneController,  hint: 'TELÉFONO',                        keyboardType: TextInputType.phone,         filledBlue: true,  validator: (v){ if (v==null||v.isEmpty) return 'Campo requerido'; return null; }),
+                        _pillTextField(controller: _phoneController, hint: 'TELÉFONO', keyboardType: TextInputType.phone, filledBlue: true, validator: (v) { if (v == null || v.isEmpty) return 'Campo requerido'; return null; }),
                         const SizedBox(height: 14),
-                        _pillTextField(controller: _rucController,    hint: 'RUC (OPCIONAL)',                  keyboardType: TextInputType.number,        filledBlue: false, isOptional: true, validator: (_)=>null),
-
+                        _pillTextField(controller: _rucController, hint: 'RUC (OPCIONAL)', keyboardType: TextInputType.number, filledBlue: false, isOptional: true, validator: (_) => null),
                         const SizedBox(height: 22),
-
-                        // Nota y botón de pago web (si aplica) — se mantienen por lógica
                         if (widget.paymentMethod == PaymentMethod.card) ...[
                           Container(
                             width: double.infinity,
@@ -1602,8 +1601,6 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
                           ),
                           const SizedBox(height: 16),
                         ],
-
-                        // Adjuntar comprobante — mismo flujo, estilo a la imagen
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
@@ -1628,10 +1625,7 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-
                         const SizedBox(height: 22),
-
-                        // Botón CONFIRMAR (bordeado grande)
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
@@ -1660,7 +1654,6 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
       ),
     );
   }
-
 
   Widget _pillTextField({
     required TextEditingController controller,
@@ -1715,8 +1708,8 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
           : border,
     );
   }
-
 }
+
 class CoursePlayerScreen extends StatefulWidget {
   final String videoUrl;
   final String title;
@@ -1787,6 +1780,7 @@ class _CoursePlayerScreenState extends State<CoursePlayerScreen> {
     );
   }
 }
+
 class AppointmentSchedulerModal extends StatefulWidget {
   final String doctorId;
   final Function(DateTime) onDateTimeSelected;
@@ -1834,7 +1828,6 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
           .where('appointmentDate', isLessThan: endOfDay)
           .get();
 
-      // solo las citas APROBADAS bloquean
       final approvedDocs = snapshot.docs.where((doc) {
         final status = doc['status'] as String? ?? 'pendiente';
         return status == 'aprobado';
@@ -1842,7 +1835,7 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
 
       final bookedAppointments = approvedDocs.map((doc) {
         final timestamp = doc['appointmentDate'] as Timestamp;
-        return timestamp.toDate(); // Ya viene con hora exacta (12:00, 14:00, etc.)
+        return timestamp.toDate();
       }).toList();
 
       if (mounted) {
@@ -1861,8 +1854,6 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
 
   bool _isSlotBooked(TimeOfDay time) {
     if (_selectedDay == null) return false;
-
-    // Verificar si la fecha seleccionada es hoy
     final now = DateTime.now();
     final slotDateTime = DateTime(
       _selectedDay!.year,
@@ -1871,38 +1862,29 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
       time.hour,
       time.minute,
     );
-
-    // 1. Verificar si la hora ya pasó (seguridad adicional)
     if (slotDateTime.isBefore(now)) {
-      return true; // Bloqueado por ser hora pasada
+      return true;
     }
-
-    // 2. Verificar si está ocupado en Firebase
-    return _bookedSlots.any((booked) =>
-    booked.hour == slotDateTime.hour && booked.minute == slotDateTime.minute);
+    return _bookedSlots.any((booked) => booked.hour == slotDateTime.hour && booked.minute == slotDateTime.minute);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Fondo azul como en la referencia (usamos tu GradientBackground)
     return GradientBackground(
       child: SafeArea(
         top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
-          child:Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // === Fila superior con botón de cerrar y título ===
               Row(
                 children: [
-                  //  Botón de cerrar con animación suave
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: kWhiteColor, size: 24),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kWhiteColor, size: 24),
                     onPressed: () {
-                      Navigator.of(context).pop(); // Cierra el modal
+                      Navigator.of(context).pop();
                     },
                   ),
                   const Expanded(
@@ -1917,13 +1899,10 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 48), // espacio para equilibrar visualmente
+                  const SizedBox(width: 48),
                 ],
               ),
-
               const SizedBox(height: 16),
-
-              // === Tarjeta blanca con el calendario ===
               AnimatedSlide(
                 offset: const Offset(0, 0.05),
                 duration: const Duration(milliseconds: 400),
@@ -1967,10 +1946,8 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                           fontWeight: FontWeight.bold,
                           color: kPrimaryColor,
                         ),
-                        leftChevronIcon:
-                        Icon(Icons.chevron_left, color: kPrimaryColor),
-                        rightChevronIcon:
-                        Icon(Icons.chevron_right, color: kPrimaryColor),
+                        leftChevronIcon: Icon(Icons.chevron_left, color: kPrimaryColor),
+                        rightChevronIcon: Icon(Icons.chevron_right, color: kPrimaryColor),
                       ),
                       calendarStyle: CalendarStyle(
                         todayDecoration: BoxDecoration(
@@ -1982,17 +1959,13 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                           shape: BoxShape.circle,
                         ),
                         defaultTextStyle: const TextStyle(color: kDarkTextColor),
-                        weekendTextStyle:
-                        TextStyle(color: kDarkTextColor.withOpacity(0.6)),
+                        weekendTextStyle: TextStyle(color: kDarkTextColor.withOpacity(0.6)),
                       ),
                     ),
                   ),
                 ),
               ),
-
               const SizedBox(height: 18),
-
-              // Etiqueta "Seleccione una hora:" en blanco como la referencia
               const Text(
                 'Seleccione una hora:',
                 style: TextStyle(
@@ -2003,8 +1976,6 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                 ),
               ),
               const SizedBox(height: 10),
-
-              // Chips de horas (lógica igual)
               if (_isLoadingTimes)
                 const Center(
                   child: Padding(
@@ -2024,16 +1995,12 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                       label: Text(
                         time.format(context),
                         style: TextStyle(
-                          color: isBooked
-                              ? Colors.grey.shade400
-                              : (isSelected ? kWhiteColor : kDarkTextColor),
+                          color: isBooked ? Colors.grey.shade400 : (isSelected ? kWhiteColor : kDarkTextColor),
                           decoration: isBooked ? TextDecoration.lineThrough : null,
                         ),
                       ),
                       selected: isSelected,
-                      onSelected: isBooked
-                          ? null
-                          : (selected) => setState(() => _selectedTime = selected ? time : null),
+                      onSelected: isBooked ? null : (selected) => setState(() => _selectedTime = selected ? time : null),
                       selectedColor: kPrimaryColor,
                       disabledColor: Colors.grey.shade200,
                       backgroundColor: kWhiteColor,
@@ -2046,10 +2013,7 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                     );
                   }).toList(),
                 ),
-
               const SizedBox(height: 20),
-
-              // Botón grande estilo "pastilla" como en la imagen (texto PAGAR)
               ElevatedButton(
                 onPressed: (_selectedDay != null && _selectedTime != null)
                     ? () {
@@ -2080,8 +2044,6 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                 ),
                 child: const Text('PAGAR'),
               ),
-
-              // Mensaje informativo (azul claro sobre fondo azul)
               const SizedBox(height: 16),
               const Text(
                 'Si por algún motivo el médico no pudiera asistir en la fecha prevista, '
@@ -2094,8 +2056,6 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-
-              // Surface blanca con texto celeste + ícono ℹ️
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
@@ -2131,7 +2091,6 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 8),
             ],
           ),
@@ -2139,14 +2098,12 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
       ),
     );
   }
-
 }
 
 // =============================================================================
 // BANK CARD VIEWER & STYLES
 // =============================================================================
 
-// Clase auxiliar para manejar estilos
 class BankCardStyle {
   final LinearGradient gradient;
   final Color shadowColor;
@@ -2166,13 +2123,12 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
   final PageController _pageController = PageController(viewportFraction: 0.85);
   int _currentPage = 0;
 
-  // Generador de estilos según el banco
   BankCardStyle _getBankStyle(String bankName) {
     final name = bankName.toLowerCase();
     if (name.contains('guayaquil')) {
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFFF5F7FF), Color(0xFFE1E8FF)], // Magenta/Morado
+          colors: [Color(0xFFFF8FB3), Color(0xFFE54872)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -2181,7 +2137,7 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
     } else if (name.contains('pichincha')) {
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFFFDD835), Color(0xFFFBC02D), Color(0xFF1565C0)], // Amarillo -> Azul
+          colors: [Color(0xFFFDD835), Color(0xFFFBC02D), Color(0xFF1565C0)],
           stops: [0.0, 0.6, 1.0],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -2191,7 +2147,7 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
     } else if (name.contains('produbanco')) {
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFF43A047), Color(0xFF1B5E20)], // Verdes
+          colors: [Color(0xFF43A047), Color(0xFF1B5E20)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -2200,7 +2156,7 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
     } else if (name.contains('pacifico') || name.contains('pacífico')) {
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFF039BE5), Color(0xFF01579B)], // Azules
+          colors: [Color(0xFF039BE5), Color(0xFF01579B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -2209,14 +2165,13 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
     } else if (name.contains('bolivariano')) {
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFFCDDC39), Color(0xFF00796B)], // Lima -> Verde azulado
+          colors: [Color(0xFFCDDC39), Color(0xFF00796B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         shadowColor: Colors.teal,
       );
     }
-    // Default Premium Style (Dark Blue/Black)
     return BankCardStyle(
       gradient: const LinearGradient(
         colors: [Color(0xFF37474F), Color(0xFF263238)],
@@ -2230,54 +2185,69 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       decoration: const BoxDecoration(
           color: kWhiteColor,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
-          )
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Datos para Transferencia', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: kPrimaryColor)),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 260, // Altura ajustada para la tarjeta
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: widget.accounts.length,
-                onPageChanged: (index) => setState(() => _currentPage = index),
-                itemBuilder: (context, index) => _buildBankAccountCard(widget.accounts[index]),
-              ),
-            ),
-            if (widget.accounts.length > 1) ...[
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(widget.accounts.length, (index) => _buildIndicator(index == _currentPage)),
-              ),
-            ],
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.receipt_long),
-                label: const Text('Adjuntar Comprobante'),
-                onPressed: widget.onProceed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimaryColor,
-                  foregroundColor: kWhiteColor,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          )),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 50,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2.5),
+                  ),
                 ),
-              ),
+                Text('Datos para Transferencia', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: kPrimaryColor)),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 260,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: widget.accounts.length,
+                    onPageChanged: (index) => setState(() => _currentPage = index),
+                    itemBuilder: (context, index) => _buildBankAccountCard(widget.accounts[index]),
+                  ),
+                ),
+                if (widget.accounts.length > 1) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(widget.accounts.length, (index) => _buildIndicator(index == _currentPage)),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.receipt_long),
+                    label: const Text('Adjuntar Comprobante'),
+                    onPressed: widget.onProceed,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      foregroundColor: kWhiteColor,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
             ),
-            const SizedBox(height: 10),
-          ],
+          ),
         ),
       ),
     );
@@ -2285,9 +2255,6 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
 
   Widget _buildBankAccountCard(BankAccount account) {
     final style = _getBankStyle(account.bankName);
-
-    // LÓGICA DE ICONOS DE BANCOS
-    // Normalizamos el nombre para comparar sin problemas
     final bankNameLower = account.bankName.toLowerCase();
     String? logoAsset;
 
@@ -2316,52 +2283,54 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
       ),
       child: Stack(
         children: [
-          // Círculos decorativos de fondo
           Positioned(right: -30, top: -30, child: _decorativeCircle(Colors.white.withOpacity(0.1), 150)),
           Positioned(bottom: -40, left: -20, child: _decorativeCircle(Colors.white.withOpacity(0.1), 120)),
-
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: Logo + Contactless
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // LOGO DEL BANCO O TEXTO
                     Expanded(
                       child: logoAsset != null
                           ? Align(
                         alignment: Alignment.centerLeft,
                         child: Image.asset(
                           logoAsset,
-                          height: 40, // Tamaño ajustado para que se vea bien
+                          height: 40,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
-                            // Fallback si la imagen no carga, mostramos texto
-                            return Text(
-                              account.bankName.toUpperCase(),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1),
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                            return FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                account.bankName.toUpperCase(),
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1),
+                                maxLines: 1,
+                              ),
                             );
                           },
                         ),
                       )
-                          : Text(
-                        account.bankName.toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1),
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                          : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          account.bankName.toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1),
+                          maxLines: 1,
+                        ),
                       ),
                     ),
-                    const Icon(Icons.wifi, color: Colors.white70, size: 28), // Icono contactless
+                    const Icon(Icons.wifi, color: Colors.white70, size: 28),
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // Chip
                 Container(
-                  width: 45, height: 35,
+                  width: 45,
+                  height: 35,
                   decoration: BoxDecoration(
                     color: const Color(0xFFE0E0E0),
                     borderRadius: BorderRadius.circular(6),
@@ -2369,26 +2338,26 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
                   ),
                   child: const Icon(Icons.memory, color: Colors.black45, size: 28),
                 ),
-
                 const Spacer(),
-
-                // Account Number (Datos principales)
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        account.accountNumber, // Podrías formatear esto #### ####
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Courier', // Fuente monoespaciada tipo tarjeta
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2.0,
-                          shadows: [Shadow(blurRadius: 2, color: Colors.black45)],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          account.accountNumber,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Courier',
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2.0,
+                            shadows: [Shadow(blurRadius: 2, color: Colors.black45)],
+                          ),
                         ),
                       ),
                     ),
-                    // Botón Copiar Integrado
                     IconButton(
                       icon: const Icon(Icons.content_copy, color: Colors.white, size: 20),
                       onPressed: () {
@@ -2398,26 +2367,30 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 10),
-
-                // Footer: Nombre y ID
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'TITULAR',
-                          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 9, letterSpacing: 1),
-                        ),
-                        Text(
-                          account.beneficiaryName.toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'TITULAR',
+                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 9, letterSpacing: 1),
+                          ),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              account.beneficiaryName.toUpperCase(),
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 10),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -2443,7 +2416,8 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
 
   Widget _decorativeCircle(Color color, double size) {
     return Container(
-      width: size, height: size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }

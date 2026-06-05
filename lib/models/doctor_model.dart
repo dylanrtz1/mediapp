@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Modelo para una sola cuenta bancaria, necesario para el doctor
+
 class BankAccount {
   final String bankName;
   final String accountType;
@@ -45,7 +45,6 @@ class Doctor {
   final double rating;
   final int reviewCount;
 
-  // --- CAMPOS NUEVOS Y ACTUALIZADOS ---
   final String about;
   final List<Map<String, dynamic>> services;
   final List<dynamic> beforeAndAfterImageUrls;
@@ -84,6 +83,9 @@ class Doctor {
     var accountsData = data['bankAccounts'] as List<dynamic>? ?? [];
     List<BankAccount> accounts = accountsData.map((acc) => BankAccount.fromMap(acc as Map<String, dynamic>)).toList();
 
+
+    String safeString(dynamic value) => value?.toString() ?? '0';
+
     return Doctor(
       id: doc.id,
       authUid: data['authUid'] ?? '',
@@ -93,16 +95,22 @@ class Doctor {
       subSpecialty: data['subSpecialty'] ?? '',
       mspRegistrationNumber: data['mspRegistrationNumber'] ?? 'N/A',
       senescytRegistrationNumber: data['senescytRegistrationNumber'] ?? 'N/A',
-      yearsOfExperience: data['yearsOfExperience'] ?? 0,
-      casesPerformed: data['casesPerformed'] ?? 0,
-      priceRegular: (data['priceRegular'] ?? 0.0).toDouble(),
-      priceWithApp: (data['priceWithApp'] ?? 0.0).toDouble(),
+
+
+      yearsOfExperience: int.tryParse(safeString(data['yearsOfExperience'])) ?? 0,
+      casesPerformed: int.tryParse(safeString(data['casesPerformed'])) ?? 0,
+
+      priceRegular: double.tryParse(safeString(data['priceRegular'])) ?? 0.0,
+      priceWithApp: double.tryParse(safeString(data['priceWithApp'])) ?? 0.0,
+
       imagePath: data['imagePath'] ?? '',
       videoUrl: data['videoUrl'] ?? '',
-      rating: (data['rating'] ?? 0.0).toDouble(),
-      reviewCount: data['reviewCount'] ?? 0,
 
-      // --- LECTURA DE LOS NUEVOS CAMPOS DESDE FIREBASE ---
+
+      rating: double.tryParse(safeString(data['rating'])) ?? 0.0,
+      reviewCount: int.tryParse(safeString(data['reviewCount'])) ?? 0,
+
+
       about: data['about'] ?? '',
       services: List<Map<String, dynamic>>.from(data['services'] ?? []),
       beforeAndAfterImageUrls: data['beforeAndAfterImageUrls'] ?? [],
