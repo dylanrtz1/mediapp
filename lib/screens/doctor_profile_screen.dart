@@ -10,7 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
-
+import 'package:intl/intl.dart';
 import '../models/doctor_model.dart';
 
 // =============================================================================
@@ -1923,45 +1923,47 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                         ),
                       ],
                     ),
-                    child: TableCalendar(
-                      locale: 'es_ES',
-                      firstDay: DateTime.now(),
-                      lastDay: DateTime.now().add(const Duration(days: 365)),
-                      focusedDay: _focusedDay,
-                      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                      onDaySelected: (selected, focused) {
-                        if (!isSameDay(_selectedDay, selected)) {
-                          setState(() {
-                            _selectedDay = selected;
-                            _focusedDay = focused;
-                          });
-                          _fetchBookedSlots(selected);
-                        }
-                      },
-                      headerStyle: const HeaderStyle(
-                        titleCentered: true,
-                        formatButtonVisible: false,
-                        titleTextStyle: TextStyle(
-                          fontSize: 17.0,
-                          fontWeight: FontWeight.bold,
-                          color: kPrimaryColor,
+                      child: TableCalendar(
+                        locale: 'es_ES',
+                        firstDay: DateTime.now(),
+                        lastDay: DateTime.now().add(const Duration(days: 365)),
+                        focusedDay: _focusedDay,
+                        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                        onDaySelected: (selected, focused) {
+                          if (!isSameDay(_selectedDay, selected)) {
+                            setState(() {
+                              _selectedDay = selected;
+                              _focusedDay = focused;
+                            });
+                            _fetchBookedSlots(selected);
+                          }
+                        },
+                        headerStyle: HeaderStyle(
+                          titleCentered: true,
+                          formatButtonVisible: false,
+                          titleTextFormatter: (date, locale) =>
+                              DateFormat.yMMMM(locale).format(date).toUpperCase(),
+                          titleTextStyle: const TextStyle(
+                            fontSize: 17.0,
+                            fontWeight: FontWeight.bold,
+                            color: kPrimaryColor,
+                          ),
+                          leftChevronIcon: const Icon(Icons.chevron_left, color: kPrimaryColor),
+                          rightChevronIcon: const Icon(Icons.chevron_right, color: kPrimaryColor),
                         ),
-                        leftChevronIcon: Icon(Icons.chevron_left, color: kPrimaryColor),
-                        rightChevronIcon: Icon(Icons.chevron_right, color: kPrimaryColor),
+                        calendarStyle: CalendarStyle(
+                          todayDecoration: BoxDecoration(
+                            color: kPrimaryColor.withOpacity(0.25),
+                            shape: BoxShape.circle,
+                          ),
+                          selectedDecoration: const BoxDecoration(
+                            color: kPrimaryColor,
+                            shape: BoxShape.circle,
+                          ),
+                          defaultTextStyle: const TextStyle(color: kDarkTextColor),
+                          weekendTextStyle: TextStyle(color: kDarkTextColor.withOpacity(0.6)),
+                        ),
                       ),
-                      calendarStyle: CalendarStyle(
-                        todayDecoration: BoxDecoration(
-                          color: kPrimaryColor.withOpacity(0.25),
-                          shape: BoxShape.circle,
-                        ),
-                        selectedDecoration: const BoxDecoration(
-                          color: kPrimaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                        defaultTextStyle: const TextStyle(color: kDarkTextColor),
-                        weekendTextStyle: TextStyle(color: kDarkTextColor.withOpacity(0.6)),
-                      ),
-                    ),
                   ),
                 ),
               ),
@@ -2125,56 +2127,88 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
 
   BankCardStyle _getBankStyle(String bankName) {
     final name = bankName.toLowerCase();
+
     if (name.contains('guayaquil')) {
+      // Banco Guayaquil
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFFFF8FB3), Color(0xFFE54872)],
+          colors: [
+            Color(0xFFE5007E),
+            Color(0xFFC4006A),
+            Color(0xFF0057B8),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        shadowColor: Colors.pinkAccent,
+        shadowColor: const Color(0xFFE5007E),
       );
     } else if (name.contains('pichincha')) {
+      // Banco Pichincha
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFFFDD835), Color(0xFFFBC02D), Color(0xFF1565C0)],
-          stops: [0.0, 0.6, 1.0],
+          colors: [
+            Color(0xFFFFDD00),
+            Color(0xFFFBC400),
+          ],
+          stops: [0.0, 0.6],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        shadowColor: Colors.amber,
+        shadowColor: const Color(0xFFFFDD00),
       );
     } else if (name.contains('produbanco')) {
+      // Produbanco
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFF43A047), Color(0xFF1B5E20)],
+          colors: [
+            Color(0xFF4CAF50),
+            Color(0xFF2E7D32),
+            Color(0xFF1B5E20),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        shadowColor: Colors.green,
+        shadowColor: const Color(0xFF43A047),
       );
+
     } else if (name.contains('pacifico') || name.contains('pacífico')) {
+      // Banco del Pacífico
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFF039BE5), Color(0xFF01579B)],
+          colors: [
+            Color(0xFF00B5E2),
+            Color(0xFF0099D8),
+            Color(0xFF005B96),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        shadowColor: Colors.lightBlue,
+        shadowColor: const Color(0xFF00B5E2),
       );
     } else if (name.contains('bolivariano')) {
       return BankCardStyle(
         gradient: const LinearGradient(
-          colors: [Color(0xFFCDDC39), Color(0xFF00796B)],
+          colors: [
+            Color(0xFF47D7E8),
+            Color(0xFF27BFD0),
+            Color(0xFF0F8FA5),
+          ],
+          stops: [0.0, 0.55, 1.0],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        shadowColor: Colors.teal,
+        shadowColor: const Color(0xFF27BFD0),
       );
     }
+
+    // Banco genérico
     return BankCardStyle(
       gradient: const LinearGradient(
-        colors: [Color(0xFF37474F), Color(0xFF263238)],
+        colors: [
+          Color(0xFF455A64),
+          Color(0xFF37474F),
+          Color(0xFF263238),
+        ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
@@ -2266,8 +2300,9 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
       logoAsset = 'assets/images/paci.png';
     } else if (bankNameLower.contains('produbanco')) {
       logoAsset = 'assets/images/produ.png';
+    } else if (bankNameLower.contains('bolivariano')) {
+      logoAsset = 'assets/images/boli.png';
     }
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -2324,19 +2359,28 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
                         ),
                       ),
                     ),
-                    const Icon(Icons.wifi, color: Colors.white70, size: 28),
+                    const Icon(Icons.contactless_outlined, color: Colors.white70, size: 32),
                   ],
                 ),
                 const SizedBox(height: 20),
+                // CAMBIO 2: Chip moderno y elegante (sin icono de CPU)
                 Container(
                   width: 45,
-                  height: 35,
+                  height: 32,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0E0E0),
                     borderRadius: BorderRadius.circular(6),
-                    gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFC5A028), Color(0xFFD4AF37)]),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE8CA72), Color(0xFFFDE08B), Color(0xFFE8CA72)],
+                    ),
+                    border: Border.all(color: Colors.black26, width: 1),
                   ),
-                  child: const Icon(Icons.memory, color: Colors.black45, size: 28),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Container(width: 1, color: Colors.black12),
+                      Container(width: 1, color: Colors.black12),
+                    ],
+                  ),
                 ),
                 const Spacer(),
                 Row(
@@ -2398,9 +2442,24 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
                           'C.I. / RUC',
                           style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 9, letterSpacing: 1),
                         ),
-                        Text(
-                          account.beneficiaryId,
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              account.beneficiaryId,
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () {
+                                Clipboard.setData(ClipboardData(text: account.beneficiaryId));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Cédula/RUC copiada'), duration: Duration(seconds: 1)),
+                                );
+                              },
+                              child: const Icon(Icons.copy, size: 12, color: Colors.white70),
+                            ),
+                          ],
                         ),
                       ],
                     ),

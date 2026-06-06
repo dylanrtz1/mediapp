@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/doctor_model.dart';
 import 'doctor_profile_screen.dart';
+import 'home_screen.dart'; // Importante: Asegúrate de importar home_screen para usar AnimatedBubblesBackground
 
 class DoctorsByCategoryScreen extends StatefulWidget {
   final String specialtyTitle;
@@ -77,6 +78,10 @@ class _DoctorsByCategoryScreenState extends State<DoctorsByCategoryScreen> {
         children: [
           Container(
             color: const Color(0xFF00A9FF),
+          ),
+          // Capa de fondo animada con desenfoque de burbujas infinitas
+          const Positioned.fill(
+            child: AnimatedBubblesBackground(),
           ),
           SafeArea(
             child: Column(
@@ -183,34 +188,80 @@ class _DoctorsByCategoryScreenState extends State<DoctorsByCategoryScreen> {
         children: [
           Hero(
             tag: 'doctor_image_${doctor.id}',
-            child: CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.white,
-              child: CircleAvatar(
-                radius: 37,
-                backgroundImage: doctor.imagePath.isNotEmpty
-                    ? NetworkImage(doctor.imagePath)
-                    : null,
-                backgroundColor: Colors.grey.shade200,
-                child: doctor.imagePath.isEmpty
-                    ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                    : null,
+            child: Container(
+              width: 84, // Tamaño total del círculo
+              height: 84,
+              padding: const EdgeInsets.all(3), // Espacio entre el borde de cristal y la foto
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.15), // Fondo translúcido (Cristal)
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.6), // Borde blanco brillante
+                  width: 1.5,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, 5), // Sombra suave hacia abajo
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Container(
+                  color: Colors.white.withOpacity(0.2), // Fondo por si no hay imagen
+                  child: doctor.imagePath.isNotEmpty
+                      ? Image.network(
+                    doctor.imagePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.person,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  )
+                      : const Icon(
+                    Icons.person,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
           Flexible(
-            child: Text(
-              doctor.name,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                // Efecto cristal muy transparente (solo un 10% de blanco)
+                color: Colors.white.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(12), // Bordes redondeados (estilo píldora)
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.5), // Borde blanco brillante para simular el reflejo
+                  width: 0.5,
+                ),
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              child: Text(
+                doctor.name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
+                  // Añadimos una sombra sutil al texto para que no se pierda en el fondo transparente
+                  shadows: [
+                    Shadow(
+                      color: Colors.black45,
+                      blurRadius: 3,
+                    ),
+                  ],
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ],

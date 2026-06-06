@@ -5,15 +5,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../auth/auth_service.dart';
 
 const Color skyBlue = Color(0xFF29B6F6);
 
 //==============================================================================
-// 1. APP DRAWER (MENÚ LATERAL)
+// 1. APP DRAWER (MENÚ LATERAL ANIMADO Y ELEGANTE)
 //==============================================================================
 
-class AppDrawer extends StatelessWidget {
+class AppDrawer extends StatefulWidget {
   final bool isGuest;
   final VoidCallback onSignOut;
 
@@ -24,127 +25,254 @@ class AppDrawer extends StatelessWidget {
   });
 
   @override
+  State<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<AppDrawer> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Controlador de la animación de entrada
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final displayName = isGuest ? 'Invitado' : (user?.displayName ?? user?.email?.split('@')[0] ?? "Usuario");
-    final email = isGuest ? 'Explorando la app' : (user?.email ?? "email@ejemplo.com");
-    final initial = isGuest ? '?' : (displayName.isNotEmpty ? displayName[0].toUpperCase() : "?");
+    final displayName = widget.isGuest ? 'Invitado' : (user?.displayName ?? user?.email?.split('@')[0] ?? "Usuario");
+    final email = widget.isGuest ? 'Explorando la app' : (user?.email ?? "email@ejemplo.com");
+    final initial = widget.isGuest ? '?' : (displayName.isNotEmpty ? displayName[0].toUpperCase() : "?");
     final photoUrl = user?.photoURL;
 
-    return Drawer(
-      backgroundColor: skyBlue,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: <Widget>[
-          _buildDrawerHeader(context, initial, displayName, email, photoUrl),
+    // Calculamos los items que vamos a mostrar
+    List<Widget> drawerItems = [
+      _buildAnimatedItem(
+        index: 1,
+        child: _buildDrawerHeader(context, initial, displayName, email, photoUrl),
+      ),
+      const SizedBox(height: 10),
+    ];
 
-          if (!isGuest) ...[
-            _buildDrawerItem(
-              context,
-              icon: Icons.person_outline,
-              text: 'Mi Perfil',
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyProfileScreen()));
-              },
-            ),
-            _buildDrawerItem(
-              context,
-              icon: Icons.calendar_month_outlined,
-              text: 'Mis Citas',
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAppointmentsScreen()));
-              },
-            ),
-            const Divider(thickness: 1, indent: 16, endIndent: 16, color: Colors.white30),
-          ],
-
-          _buildDrawerItem(
+    if (!widget.isGuest) {
+      drawerItems.addAll([
+        _buildAnimatedItem(
+          index: 2,
+          child: _buildDrawerItem(
             context,
-            icon: Icons.help_outline,
-            text: 'Ayuda y Soporte',
+            icon: Icons.person_outline,
+            text: 'Mi Perfil',
             onTap: () {
               Navigator.of(context).pop();
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpAndSupportScreen()));
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyProfileScreen()));
             },
           ),
-          const Divider(thickness: 1, indent: 16, endIndent: 16, color: Colors.white30),
-
-          _buildDrawerItem(
+        ),
+        _buildAnimatedItem(
+          index: 3,
+          child: _buildDrawerItem(
             context,
-            icon: isGuest ? Icons.login : Icons.logout,
-            text: isGuest ? 'Iniciar Sesión / Registrarse' : 'Cerrar Sesión',
-            color: Colors.white,
-            onTap: onSignOut,
+            icon: Icons.calendar_month_outlined,
+            text: 'Mis Citas',
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyAppointmentsScreen()));
+            },
           ),
-        ],
+        ),
+        const SizedBox(height: 10),
+      ]);
+    }
+
+    drawerItems.addAll([
+      _buildAnimatedItem(
+        index: widget.isGuest ? 2 : 4,
+        child: _buildDrawerItem(
+          context,
+          icon: Icons.help_outline,
+          text: 'Ayuda y Soporte',
+          onTap: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpAndSupportScreen()));
+          },
+        ),
+      ),
+      const SizedBox(height: 20),
+      _buildAnimatedItem(
+        index: widget.isGuest ? 3 : 5,
+        child: _buildDrawerItem(
+          context,
+          icon: widget.isGuest ? Icons.login : Icons.logout,
+          text: widget.isGuest ? 'Iniciar Sesión / Registrarse' : 'Cerrar Sesión',
+          isLogout: true,
+          onTap: widget.onSignOut,
+        ),
+      ),
+      const SizedBox(height: 30), // Espacio al final
+    ]);
+
+    return Drawer(
+      // Borde redondeado elegante
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(35)),
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF4FC3F7), // Celeste claro brillante
+              Color(0xFF0288D1), // Celeste intenso/oscuro
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            physics: const BouncingScrollPhysics(),
+            children: drawerItems,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Crea la animación en cascada para cada elemento
+  Widget _buildAnimatedItem({required int index, required Widget child}) {
+    final animation = Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(
+          (index * 0.1).clamp(0.0, 1.0),
+          1.0,
+          curve: Curves.easeOutCubic,
+        ),
+      ),
+    );
+
+    final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(
+          (index * 0.1).clamp(0.0, 1.0),
+          1.0,
+          curve: Curves.easeOut,
+        ),
+      ),
+    );
+
+    return SlideTransition(
+      position: animation,
+      child: FadeTransition(
+        opacity: fadeAnimation,
+        child: child,
       ),
     );
   }
 
   Widget _buildDrawerHeader(BuildContext context, String initial, String name, String email, String? photoUrl) {
     return Container(
-      height: 220,
+      margin: const EdgeInsets.fromLTRB(16, 20, 16, 10),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withOpacity(0.2),
-            Colors.transparent,
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 15, offset: Offset(0, 8)),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5)),
+              ],
+            ),
+            child: CircleAvatar(
               radius: 40,
               backgroundColor: Colors.white,
               backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
               child: photoUrl == null
                   ? Text(
                 initial,
-                style: const TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: skyBlue,
-                ),
+                style: const TextStyle(fontSize: 35, fontWeight: FontWeight.bold, color: skyBlue),
               )
                   : null,
             ),
-            const SizedBox(height: 12),
-            Text(
-              name,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            name,
+            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(15),
             ),
-            const SizedBox(height: 4),
-            Text(
+            child: Text(
               email,
-              style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, {required IconData icon, required String text, required VoidCallback onTap, Color? color}) {
-    final itemColor = color ?? Colors.white;
-    return ListTile(
-      leading: Icon(icon, color: itemColor),
-      title: Text(
-        text,
-        style: TextStyle(fontSize: 16, color: itemColor),
+  Widget _buildDrawerItem(BuildContext context, {required IconData icon, required String text, required VoidCallback onTap, bool isLogout = false}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: isLogout ? Colors.white : Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isLogout ? Colors.transparent : Colors.white.withOpacity(0.4),
+          width: 1.5,
+        ),
+        boxShadow: isLogout
+            ? const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))]
+            : [],
       ),
-      onTap: onTap,
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+        leading: Icon(icon, color: isLogout ? skyBlue : Colors.white, size: 26),
+        title: Text(
+          text,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isLogout ? skyBlue : Colors.white,
+          ),
+        ),
+        trailing: isLogout ? null : const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+        onTap: onTap,
+      ),
     );
   }
 }
@@ -672,6 +800,29 @@ class MyAppointmentsScreen extends StatelessWidget {
 class HelpAndSupportScreen extends StatelessWidget {
   const HelpAndSupportScreen({super.key});
 
+  Future<void> _launchWhatsApp(BuildContext context) async {
+    // Formato requerido por WhatsApp: sin símbolo '+' y sin espacios.
+    final Uri whatsappUrl = Uri.parse("https://wa.me/593979072591?text=Hola,%20necesito%20ayuda%20con%20la%20aplicación.");
+
+    try {
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se pudo abrir WhatsApp. Verifica que esté instalado.'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al abrir WhatsApp.'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -699,6 +850,13 @@ class HelpAndSupportScreen extends StatelessWidget {
             _buildContactSection(context),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _launchWhatsApp(context),
+        backgroundColor: const Color(0xFF25D366), // Color verde oficial de WhatsApp
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        child: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 34),
       ),
     );
   }

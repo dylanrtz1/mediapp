@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -317,11 +318,42 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => DoctorsByCategoryScreen(specialtyTitle: title, doctors: filteredDocs)));
   }
 
+  // Lógica para abrir WhatsApp desde el botón flotante
+  Future<void> _launchWhatsApp(BuildContext context) async {
+    final Uri whatsappUrl = Uri.parse("https://wa.me/593979072591?text=Hola,%20necesito%20ayuda%20con%20la%20aplicación.");
+    try {
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se pudo abrir WhatsApp. Verifica que esté instalado.'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al abrir WhatsApp.'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: AppDrawer(isGuest: _isGuest, onSignOut: _showLogoutConfirmationDialog),
       backgroundColor: const Color(0xFF00A9FF),
+
+      // Botón flotante de WhatsApp
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _launchWhatsApp(context),
+        backgroundColor: const Color(0xFF25D366), // Color verde oficial de WhatsApp
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        child: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 34),
+      ),
 
       bottomNavigationBar: SafeArea(
         top: false,
@@ -344,6 +376,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
       body: Stack(
         children: [
+          // Capa de fondo animada con desenfoque de burbujas infinitas
+          const Positioned.fill(
+            child: AnimatedBubblesBackground(),
+          ),
+
           _isLoading
               ? const Center(child: CircularProgressIndicator(color: Colors.white))
               : RefreshIndicator(
@@ -612,4 +649,105 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+// ============================================================================
+// WIDGETS ANIMADOS PERSONALIZADOS (Burbujas en el fondo)
+// ============================================================================
+
+class AnimatedBubblesBackground extends StatefulWidget {
+  const AnimatedBubblesBackground({super.key});
+
+  @override
+  State<AnimatedBubblesBackground> createState() => _AnimatedBubblesBackgroundState();
+}
+
+class _AnimatedBubblesBackgroundState extends State<AnimatedBubblesBackground> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final List<Bubble> _bubbles = [];
+  final Random _random = Random();
+
+  @override
+  void initState() {
+    super.initState();
+    // Generar partículas (burbujas)
+    for (int i = 0; i < 25; i++) {
+      _bubbles.add(Bubble(
+        x: _random.nextDouble(),
+        y: _random.nextDouble() * 1.5, // Distribuirlas en toda la pantalla inicial
+        speed: 0.001 + _random.nextDouble() * 0.002, // Velocidad súper suave
+        size: 15 + _random.nextDouble() * 45, // Tamaños variables
+        blurAmount: 2 + _random.nextDouble() * 8, // Diferentes niveles de desenfoque
+        opacity: 0.05 + _random.nextDouble() * 0.2, // Opacidades sutiles
+      ));
+    }
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10), // Loop infinito
+    )..addListener(() {
+      setState(() {
+        for (var bubble in _bubbles) {
+          bubble.y -= bubble.speed; // Mover hacia arriba
+          if (bubble.y < -0.2) {    // Si sale de la pantalla por arriba
+            bubble.y = 1.2;         // Reaparece abajo
+            bubble.x = _random.nextDouble(); // En una nueva posición horizontal
+          }
+        }
+      });
+    })..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Usamos IgnorePointer para que las burbujas no bloqueen los taps de tu app
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: BubblesPainter(bubbles: _bubbles),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class Bubble {
+  double x, y, speed, size, blurAmount, opacity;
+  Bubble({
+    required this.x,
+    required this.y,
+    required this.speed,
+    required this.size,
+    required this.blurAmount,
+    required this.opacity,
+  });
+}
+
+class BubblesPainter extends CustomPainter {
+  final List<Bubble> bubbles;
+  BubblesPainter({required this.bubbles});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var bubble in bubbles) {
+      final paint = Paint()
+        ..color = Colors.white.withOpacity(bubble.opacity)
+        ..style = PaintingStyle.fill
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, bubble.blurAmount); // Efecto Glass/Blur
+
+      canvas.drawCircle(
+        Offset(bubble.x * size.width, bubble.y * size.height),
+        bubble.size,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant BubblesPainter oldDelegate) => true;
 }
