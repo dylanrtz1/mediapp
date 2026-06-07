@@ -12,10 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:intl/intl.dart';
 import '../models/doctor_model.dart';
-
-// =============================================================================
-// COLORES Y ESTILOS GLOBALES
-// =============================================================================
+import 'home_screen.dart';
 
 const Color kPrimaryColor = Color(0xFF00A9FF);
 const Color kLightBlueColor = Color(0xFF33CFFF);
@@ -23,9 +20,6 @@ const Color kWhiteColor = Colors.white;
 const Color kDarkTextColor = Color(0xFF3A3A3A);
 const Color kGreyTextColor = Color(0xFF888888);
 
-// =============================================================================
-// WIDGET DE FONDO CON GRADIENTE
-// =============================================================================
 class GradientBackground extends StatelessWidget {
   final Widget child;
   const GradientBackground({super.key, required this.child});
@@ -40,21 +34,24 @@ class GradientBackground extends StatelessWidget {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: child,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const AnimatedBubblesBackground(),
+          child,
+        ],
+      ),
     );
   }
 }
 
-// =============================================================================
-// WIDGET CONTENEDOR BLANCO REDONDEADO
-// =============================================================================
-class WhiteCard extends StatelessWidget {
+class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry margin;
   final VoidCallback? onTap;
 
-  const WhiteCard({
+  const GlassCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16.0),
@@ -70,13 +67,13 @@ class WhiteCard extends StatelessWidget {
         margin: margin,
         padding: padding,
         decoration: BoxDecoration(
-          color: kWhiteColor,
+          color: Colors.white.withOpacity(0.25),
           borderRadius: BorderRadius.circular(20.0),
+          border: Border.all(color: Colors.white.withOpacity(0.6), width: 0.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 15,
-              spreadRadius: 2,
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
               offset: const Offset(0, 5),
             )
           ],
@@ -87,9 +84,6 @@ class WhiteCard extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// PANTALLA PRINCIPAL: PERFIL DEL DOCTOR
-// =============================================================================
 class DoctorProfileScreen extends StatefulWidget {
   final Doctor doctor;
   const DoctorProfileScreen({super.key, required this.doctor});
@@ -149,7 +143,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
               delegate: SliverChildListDelegate(
                 [
                   const SizedBox(height: 30),
-                  // Nombre del Doctor con ajuste de texto
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Text(
@@ -212,7 +205,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(color: kPrimaryColor),
               ),
-            // Gradiente para legibilidad
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -264,32 +256,29 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                   clipBehavior: Clip.none,
                   children: [
                     Container(
+                      padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        boxShadow: [
+                        color: Colors.white.withOpacity(0.30),
+                        border: Border.all(color: Colors.white.withOpacity(0.6), width: 1.5),
+                        boxShadow: const [
                           BoxShadow(
-                            color: Colors.cyanAccent.withOpacity(0.45),
-                            blurRadius: 30,
-                            spreadRadius: 6,
-                          ),
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.35),
-                            blurRadius: 12,
-                            spreadRadius: 2,
+                            color: Colors.black12,
+                            blurRadius: 10,
+                            offset: Offset(0, 5),
                           ),
                         ],
                       ),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: kWhiteColor, width: 5),
-                        ),
-                        child: CircleAvatar(
-                          radius: kAvatarRadius,
-                          backgroundColor: kWhiteColor,
-                          backgroundImage: NetworkImage(widget.doctor.imagePath),
-                          onBackgroundImageError: (_, __) {},
+                      child: ClipOval(
+                        child: Container(
+                          width: kAvatarRadius * 2,
+                          height: kAvatarRadius * 2,
+                          color: Colors.white.withOpacity(0.40),
+                          child: Image.network(
+                            widget.doctor.imagePath,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white, size: 40),
+                          ),
                         ),
                       ),
                     ),
@@ -299,25 +288,25 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: kWhiteColor,
+                          color: Colors.white.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
+                          border: Border.all(color: Colors.white.withOpacity(0.6), width: 0.5),
+                          boxShadow: const [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
+                              color: Colors.black45,
+                              blurRadius: 3,
                             ),
                           ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 16),
+                            const Icon(Icons.star, color: Colors.amber, size: 14),
                             const SizedBox(width: 4),
                             Text(
                               widget.doctor.rating.toStringAsFixed(1),
                               style: const TextStyle(
-                                color: kDarkTextColor,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -336,9 +325,8 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     );
   }
 
-  // OPTIMIZADO: Usa Wrap para que si los registros son largos, bajen de línea
   Widget _buildCredentialsSection() {
-    return WhiteCard(
+    return GlassCard(
       margin: const EdgeInsets.symmetric(horizontal: 30),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       child: Column(
@@ -348,17 +336,16 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
             spacing: 8.0,
             runSpacing: 4.0,
             children: [
-              // Icono y MSP juntos
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.verified_user, color: Colors.green, size: 20),
+                  const Icon(Icons.verified_user, color: Colors.greenAccent, size: 20),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       'MSP: ${widget.doctor.mspRegistrationNumber}',
                       style: const TextStyle(
-                        color: kDarkTextColor,
+                        color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -366,13 +353,11 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                   ),
                 ],
               ),
-              // Separador visual solo si hay espacio, sino salta
-              const Text('•', style: TextStyle(color: kGreyTextColor)),
-              // SENESCYT
+              const Text('•', style: TextStyle(color: Colors.white70)),
               Text(
                 'SENESCYT: ${widget.doctor.senescytRegistrationNumber}',
                 style: const TextStyle(
-                  color: kDarkTextColor,
+                  color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -385,7 +370,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     );
   }
 
-  // OPTIMIZADO: FittedBox para números grandes
   Widget _buildStats() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -472,18 +456,17 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? kPrimaryColor : kWhiteColor,
-          foregroundColor: isSelected ? kWhiteColor : kPrimaryColor,
+          backgroundColor: isSelected ? Colors.white.withOpacity(0.35) : Colors.white.withOpacity(0.15),
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
             side: BorderSide(
-              color: kPrimaryColor.withOpacity(0.6),
-              width: 1.5,
+              color: Colors.white.withOpacity(0.6),
+              width: 1.0,
             ),
           ),
           padding: const EdgeInsets.symmetric(vertical: 12),
-          elevation: isSelected ? 6 : 2,
-          shadowColor: Colors.black.withOpacity(0.25),
+          elevation: 0,
         ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
@@ -504,32 +487,36 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: _selectedTab == 'Sobre mí'
-          ? WhiteCard(
+          ? GlassCard(
           key: const ValueKey('about'),
-          child: Text(widget.doctor.about.isNotEmpty ? widget.doctor.about : 'Biografía no disponible.', style: const TextStyle(color: kPrimaryColor, height: 1.5)))
+          child: Text(
+              widget.doctor.about.isNotEmpty ? widget.doctor.about : 'Biografía no disponible.',
+              style: const TextStyle(color: Colors.white, height: 1.5, shadows: [Shadow(color: Colors.black26, blurRadius: 2)])
+          )
+      )
           : _buildCoursesContent(),
     );
   }
 
   Widget _buildCoursesContent() {
     if (widget.doctor.courses.isEmpty) {
-      return WhiteCard(
+      return GlassCard(
         key: const ValueKey('no_courses'),
         child: const SizedBox(
           height: 100,
           child: Center(
-            child: Text('No hay cursos disponibles por el momento.', style: TextStyle(color: kGreyTextColor)),
+            child: Text('No hay cursos disponibles por el momento.', style: TextStyle(color: Colors.white)),
           ),
         ),
       );
     }
-    return WhiteCard(
+    return GlassCard(
       key: const ValueKey('courses'),
       child: Column(
         children: widget.doctor.courses.map((course) {
           return ListTile(
-            leading: const Icon(Icons.school, color: kPrimaryColor),
-            title: Text(course['title'] ?? 'Sin Título', style: const TextStyle(color: kDarkTextColor, fontWeight: FontWeight.bold)),
+            leading: const Icon(Icons.school, color: Colors.white),
+            title: Text(course['title'] ?? 'Sin Título', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             onTap: () {
               if (course['videoUrl'] != null && course['videoUrl'].isNotEmpty) {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => CoursePlayerScreen(videoUrl: course['videoUrl'], title: course['title'])));
@@ -560,9 +547,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   }
 }
 
-// =============================================================================
-// WIDGET DE GALERÍA DE CASOS
-// =============================================================================
 class CaseGalleryGrid extends StatelessWidget {
   final List<dynamic> images;
   const CaseGalleryGrid({super.key, required this.images});
@@ -682,9 +666,6 @@ class CaseGalleryGrid extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// PANTALLA EXCLUSIVA DE SERVICIOS
-// =============================================================================
 class ServicesScreen extends StatefulWidget {
   final Doctor doctor;
   const ServicesScreen({super.key, required this.doctor});
@@ -809,12 +790,12 @@ class _ServicesScreenState extends State<ServicesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  WhiteCard(
+                  GlassCard(
                     margin: const EdgeInsets.only(bottom: 15, right: 100),
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     child: const Text(
                       'Servicios',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 30),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 30),
                     ),
                   ),
                   const Text(
@@ -842,7 +823,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
     );
   }
 
-  // --- OPTIMIZADO: SIN ALTURA FIJA, TEXTO FLUIDO ---
   Widget _buildServiceItem(Map<String, dynamic> service) {
     final serviceId = service['id'] as String;
     final name = (service['name'] ?? 'Servicio').toString();
@@ -855,13 +835,13 @@ class _ServicesScreenState extends State<ServicesScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
-        color: kWhiteColor,
+        color: Colors.white.withOpacity(0.25),
         borderRadius: BorderRadius.circular(20.0),
+        border: Border.all(color: Colors.white.withOpacity(0.6), width: 0.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            spreadRadius: 2,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
             offset: const Offset(0, 5),
           )
         ],
@@ -871,8 +851,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
         borderRadius: BorderRadius.circular(20.0),
         child: InkWell(
           borderRadius: BorderRadius.circular(20.0),
-          splashColor: kPrimaryColor.withOpacity(0.1),
-          highlightColor: kPrimaryColor.withOpacity(0.05),
+          splashColor: Colors.white.withOpacity(0.2),
+          highlightColor: Colors.white.withOpacity(0.1),
           onTap: () {
             _updateServiceQuantity(serviceId, 1);
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -891,7 +871,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // IMAGEN FIJA: Asegura que no se deforme ni dependa de la altura del texto
                   SizedBox(
                     width: 100,
                     height: 100,
@@ -908,13 +887,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     ),
                   ),
                   const SizedBox(width: 15),
-
-                  // CONTENIDO FLEXIBLE: Se expande verticalmente lo necesario
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Título y Badge
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -924,9 +900,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: kPrimaryColor,
+                                  color: Colors.white,
                                 ),
-                                // Eliminado maxLines para que baje si es necesario
                               ),
                             ),
                             if (quantity > 0)
@@ -934,8 +909,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 margin: const EdgeInsets.only(left: 4),
                                 decoration: BoxDecoration(
-                                  color: kPrimaryColor,
+                                  color: Colors.white.withOpacity(0.3),
                                   borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.white.withOpacity(0.6), width: 0.5),
                                 ),
                                 child: Text(
                                   'x$quantity',
@@ -949,41 +925,30 @@ class _ServicesScreenState extends State<ServicesScreen> {
                           ],
                         ),
                         const SizedBox(height: 6),
-
-                        // Descripción: Texto completo, sin scroll
                         Text(
                           desc,
                           style: const TextStyle(
                             fontSize: 13,
-                            color: kPrimaryColor,
+                            color: Colors.white,
                             height: 1.3,
                           ),
                         ),
-
                         const SizedBox(height: 10),
-
-                        // Precio: Alineado a la derecha al final
                         Align(
                           alignment: Alignment.centerRight,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: kWhiteColor,
+                              color: Colors.white.withOpacity(0.30),
                               borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                              border: Border.all(color: Colors.white.withOpacity(0.6), width: 0.5),
                             ),
                             child: Text(
                               '\$${price.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: kPrimaryColor,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1012,8 +977,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
+            blurRadius: 20,
             spreadRadius: 2,
+            offset: const Offset(0, -5),
           )
         ],
       ),
@@ -1027,7 +993,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
               const Text("Precio App", style: TextStyle(color: kGreyTextColor, fontSize: 12)),
               Text(
                 '\$${_calculateCartTotal().toStringAsFixed(2)}',
-                style: const TextStyle(color: kDarkTextColor, fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: kDarkTextColor, fontSize: 24, fontWeight: FontWeight.w900),
               ),
             ],
           ),
@@ -1038,9 +1004,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimaryColor,
               foregroundColor: kWhiteColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              elevation: 4,
+              shadowColor: kPrimaryColor.withOpacity(0.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 0.5),
             ),
           ),
         ],
@@ -1119,7 +1087,7 @@ class _CartScreenState extends State<CartScreen> {
     final priceApp = (service['priceWithApp'] as num? ?? 0.0).toDouble();
     final quantity = service['quantity'] as int;
 
-    return WhiteCard(
+    return GlassCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
@@ -1128,16 +1096,16 @@ class _CartScreenState extends State<CartScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kDarkTextColor)),
-                Text('\$${priceApp.toStringAsFixed(2)}', style: const TextStyle(color: kGreyTextColor)),
+                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                Text('\$${priceApp.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white)),
               ],
             ),
           ),
           Row(
             children: [
-              IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => _updateServiceQuantity(serviceId, -1)),
-              Text('$quantity', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kDarkTextColor)),
-              IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.green), onPressed: () => _updateServiceQuantity(serviceId, 1)),
+              IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.white70), onPressed: () => _updateServiceQuantity(serviceId, -1)),
+              Text('$quantity', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+              IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.white), onPressed: () => _updateServiceQuantity(serviceId, 1)),
             ],
           ),
         ],
@@ -1608,7 +1576,7 @@ class _BillingDetailsScreenState extends State<BillingDetailsScreen> {
                             label: Text(_receiptImage == null ? 'ADJUNTAR COMPROBANTE' : 'COMPROBANTE CARGADO'),
                             onPressed: _pickImage,
                             style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: kPrimaryColor, width: 3),
+                              side: const BorderSide(color: kPrimaryColor, width: 3),
                               foregroundColor: kPrimaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -1923,47 +1891,46 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
                         ),
                       ],
                     ),
-                      child: TableCalendar(
-                        locale: 'es_ES',
-                        firstDay: DateTime.now(),
-                        lastDay: DateTime.now().add(const Duration(days: 365)),
-                        focusedDay: _focusedDay,
-                        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                        onDaySelected: (selected, focused) {
-                          if (!isSameDay(_selectedDay, selected)) {
-                            setState(() {
-                              _selectedDay = selected;
-                              _focusedDay = focused;
-                            });
-                            _fetchBookedSlots(selected);
-                          }
-                        },
-                        headerStyle: HeaderStyle(
-                          titleCentered: true,
-                          formatButtonVisible: false,
-                          titleTextFormatter: (date, locale) =>
-                              DateFormat.yMMMM(locale).format(date).toUpperCase(),
-                          titleTextStyle: const TextStyle(
-                            fontSize: 17.0,
-                            fontWeight: FontWeight.bold,
-                            color: kPrimaryColor,
-                          ),
-                          leftChevronIcon: const Icon(Icons.chevron_left, color: kPrimaryColor),
-                          rightChevronIcon: const Icon(Icons.chevron_right, color: kPrimaryColor),
+                    child: TableCalendar(
+                      locale: 'es_ES',
+                      firstDay: DateTime.now(),
+                      lastDay: DateTime.now().add(const Duration(days: 365)),
+                      focusedDay: _focusedDay,
+                      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                      onDaySelected: (selected, focused) {
+                        if (!isSameDay(_selectedDay, selected)) {
+                          setState(() {
+                            _selectedDay = selected;
+                            _focusedDay = focused;
+                          });
+                          _fetchBookedSlots(selected);
+                        }
+                      },
+                      headerStyle: HeaderStyle(
+                        titleCentered: true,
+                        formatButtonVisible: false,
+                        titleTextFormatter: (date, locale) => DateFormat.yMMMM(locale).format(date).toUpperCase(),
+                        titleTextStyle: const TextStyle(
+                          fontSize: 17.0,
+                          fontWeight: FontWeight.bold,
+                          color: kPrimaryColor,
                         ),
-                        calendarStyle: CalendarStyle(
-                          todayDecoration: BoxDecoration(
-                            color: kPrimaryColor.withOpacity(0.25),
-                            shape: BoxShape.circle,
-                          ),
-                          selectedDecoration: const BoxDecoration(
-                            color: kPrimaryColor,
-                            shape: BoxShape.circle,
-                          ),
-                          defaultTextStyle: const TextStyle(color: kDarkTextColor),
-                          weekendTextStyle: TextStyle(color: kDarkTextColor.withOpacity(0.6)),
-                        ),
+                        leftChevronIcon: const Icon(Icons.chevron_left, color: kPrimaryColor),
+                        rightChevronIcon: const Icon(Icons.chevron_right, color: kPrimaryColor),
                       ),
+                      calendarStyle: CalendarStyle(
+                        todayDecoration: BoxDecoration(
+                          color: kPrimaryColor.withOpacity(0.25),
+                          shape: BoxShape.circle,
+                        ),
+                        selectedDecoration: const BoxDecoration(
+                          color: kPrimaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        defaultTextStyle: const TextStyle(color: kDarkTextColor),
+                        weekendTextStyle: TextStyle(color: kDarkTextColor.withOpacity(0.6)),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -2102,10 +2069,6 @@ class _AppointmentSchedulerModalState extends State<AppointmentSchedulerModal> {
   }
 }
 
-// =============================================================================
-// BANK CARD VIEWER & STYLES
-// =============================================================================
-
 class BankCardStyle {
   final LinearGradient gradient;
   final Color shadowColor;
@@ -2129,7 +2092,6 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
     final name = bankName.toLowerCase();
 
     if (name.contains('guayaquil')) {
-      // Banco Guayaquil
       return BankCardStyle(
         gradient: const LinearGradient(
           colors: [
@@ -2143,7 +2105,6 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
         shadowColor: const Color(0xFFE5007E),
       );
     } else if (name.contains('pichincha')) {
-      // Banco Pichincha
       return BankCardStyle(
         gradient: const LinearGradient(
           colors: [
@@ -2157,7 +2118,6 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
         shadowColor: const Color(0xFFFFDD00),
       );
     } else if (name.contains('produbanco')) {
-      // Produbanco
       return BankCardStyle(
         gradient: const LinearGradient(
           colors: [
@@ -2172,7 +2132,6 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
       );
 
     } else if (name.contains('pacifico') || name.contains('pacífico')) {
-      // Banco del Pacífico
       return BankCardStyle(
         gradient: const LinearGradient(
           colors: [
@@ -2201,7 +2160,6 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
       );
     }
 
-    // Banco genérico
     return BankCardStyle(
       gradient: const LinearGradient(
         colors: [
@@ -2363,7 +2321,6 @@ class _BankAccountViewerState extends State<BankAccountViewer> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                // CAMBIO 2: Chip moderno y elegante (sin icono de CPU)
                 Container(
                   width: 45,
                   height: 32,
