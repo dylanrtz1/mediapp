@@ -7,20 +7,23 @@
     </button>
   </div>
   <div class="bg-white p-8 rounded-2xl shadow-lg">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left text-gray-500">
-        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-          <tr>
-            <th scope="col" class="px-6 py-3">Nombre del Médico</th>
-            <th scope="col" class="px-6 py-3">Especialidad</th>
-            <th scope="col" class="px-6 py-3">Ciudad</th>
-            <th scope="col" class="px-6 py-3 text-center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="doctors-table-body">
-          <tr><td colspan="4" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></td></tr>
-        </tbody>
-      </table>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <p class="text-sm text-gray-500 shrink-0">Total registrados: <span id="doctors-count" class="font-bold text-gray-700">0</span></p>
+      <div class="relative w-full sm:w-72">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+        <input id="search-input" type="text" placeholder="Buscar por nombre..." class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+      </div>
+      <p class="text-sm text-gray-500 shrink-0">Página <span id="page-current">1</span> de <span id="page-total">1</span></p>
+    </div>
+    <div id="doctors-grouped"></div>
+    <div class="flex items-center justify-between mt-6">
+      <button id="prev-page-btn" class="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition" disabled>
+        <i class="fas fa-chevron-left mr-1"></i> Anterior
+      </button>
+      <div id="page-numbers" class="flex items-center gap-1"></div>
+      <button id="next-page-btn" class="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition" disabled>
+        Siguiente <i class="fas fa-chevron-right ml-1"></i>
+      </button>
     </div>
   </div>
 </div>
@@ -156,7 +159,6 @@
   </form>
 </div>
 
-<!-- SCRIPT COMPLETO CON TODAS LAS FUNCIONALIDADES -->
 <script type="module">
   import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
   import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -169,11 +171,9 @@
   const addDoctorView = document.getElementById('add-doctor-view');
   const showCreateFormBtn = document.getElementById('show-create-form-btn');
   const backToListBtn = document.getElementById('back-to-list-btn');
-  const doctorsTableBody = document.getElementById('doctors-table-body');
   const doctorForm = document.getElementById('doctor-form');
   const successMessage = document.getElementById('success-message');
   const errorMessage = document.getElementById('error-message');
-  
   const proceduresContainer = document.getElementById('procedures-container');
   const addProcedureBtn = document.getElementById('add-procedure-btn');
   const bankAccountsContainer = document.getElementById('bank-accounts-container');
@@ -182,6 +182,131 @@
   const addCourseBtn = document.getElementById('add-course-btn');
   const galleryContainer = document.getElementById('gallery-container');
   const addGalleryBtn = document.getElementById('add-gallery-btn');
+  const searchInput = document.getElementById('search-input');
+
+  // Colores y íconos por especialidad
+  const SPECIALTY_META = {
+    'CIRUGÍA ESTÉTICA':  { color: 'bg-pink-50 text-pink-700 border-pink-200',   dot: 'bg-pink-400',   icon: 'fa-star' },
+    'ODONTOLÓGICA':      { color: 'bg-blue-50 text-blue-700 border-blue-200',    dot: 'bg-blue-400',   icon: 'fa-tooth' },
+    'CIRUGÍA BARIATRICA':{ color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-400', icon: 'fa-weight-scale' },
+  };
+  const DEFAULT_META = { color: 'bg-gray-50 text-gray-700 border-gray-200', dot: 'bg-gray-400', icon: 'fa-user-doctor' };
+
+  // --- Paginación ---
+  const PAGE_SIZE = 10;
+  let allDoctors = [];
+  let filteredDoctors = [];
+  let currentPage = 1;
+
+  const getFiltered = () => {
+    const q = searchInput.value.trim().toLowerCase();
+    return q ? allDoctors.filter(d => (d.data.name || '').toLowerCase().includes(q)) : allDoctors;
+  };
+
+  const renderPage = (page) => {
+    currentPage = page;
+    filteredDoctors = getFiltered();
+
+    const total = filteredDoctors.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const start = (page - 1) * PAGE_SIZE;
+    const pageItems = filteredDoctors.slice(start, start + PAGE_SIZE);
+
+    document.getElementById('doctors-count').textContent = allDoctors.length;
+    document.getElementById('page-current').textContent = page;
+    document.getElementById('page-total').textContent = totalPages;
+
+    // Agrupar por especialidad
+    const grouped = {};
+    pageItems.forEach(item => {
+      const sp = item.data.specialty || 'Sin Especialidad';
+      if (!grouped[sp]) grouped[sp] = [];
+      grouped[sp].push(item);
+    });
+
+    const container = document.getElementById('doctors-grouped');
+    container.innerHTML = '';
+
+    if (pageItems.length === 0) {
+      container.innerHTML = `<p class="text-center py-10 text-gray-400 text-sm">No se encontraron médicos.</p>`;
+    } else {
+      Object.entries(grouped).forEach(([specialty, items]) => {
+        const meta = SPECIALTY_META[specialty] || DEFAULT_META;
+
+        // Separador de categoría
+        const section = document.createElement('div');
+        section.className = 'mb-6';
+        section.innerHTML = `
+          <div class="flex items-center gap-3 mb-3">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${meta.color}">
+              <i class="fas ${meta.icon} text-xs"></i>${specialty}
+            </span>
+            <div class="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent"></div>
+            <span class="text-xs text-gray-400 font-medium">${items.length} médico${items.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-gray-100">
+            <table class="w-full text-sm text-left text-gray-500">
+              <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3">Nombre del Médico</th>
+                  <th scope="col" class="px-6 py-3">Especialidad</th>
+                  <th scope="col" class="px-6 py-3">Ciudad</th>
+                  <th scope="col" class="px-6 py-3 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="specialty-tbody"></tbody>
+            </table>
+          </div>`;
+
+        const tbody = section.querySelector('.specialty-tbody');
+        items.forEach(({ id: docId, data: doctor }) => {
+          const tr = document.createElement('tr');
+          tr.className = 'bg-white border-b border-gray-50 hover:bg-gray-50 transition-colors';
+          tr.innerHTML = `
+            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+              <span class="inline-block w-2 h-2 rounded-full ${meta.dot} mr-2 align-middle"></span>${doctor.name || 'N/A'}
+            </th>
+            <td class="px-6 py-4">${doctor.specialty || 'N/A'}</td>
+            <td class="px-6 py-4">${doctor.city || 'N/A'}</td>
+            <td class="px-6 py-4 text-center space-x-4">
+              <button data-action="edit" data-id="${docId}" class="font-medium text-blue-600 hover:underline"><i class="fas fa-edit"></i></button>
+              <button data-action="delete" data-id="${docId}" class="font-medium text-red-600 hover:underline"><i class="fas fa-trash"></i></button>
+            </td>`;
+          tbody.appendChild(tr);
+        });
+
+        container.appendChild(section);
+      });
+
+      // Delegación de eventos en el contenedor agrupado
+      container.addEventListener('click', (e) => {
+        const button = e.target.closest('button[data-action]');
+        if (!button) return;
+        const { action, id } = button.dataset;
+        if (action === 'edit') openEditForm(id);
+        else if (action === 'delete') handleDeleteDoctor(id);
+      }, { once: false });
+    }
+
+    document.getElementById('prev-page-btn').disabled = page <= 1;
+    document.getElementById('next-page-btn').disabled = page >= totalPages;
+
+    const pageNumbers = document.getElementById('page-numbers');
+    pageNumbers.innerHTML = '';
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = `w-8 h-8 text-sm font-semibold rounded-lg transition ${
+        i === page ? 'bg-blue-600 text-white' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+      }`;
+      btn.addEventListener('click', () => renderPage(i));
+      pageNumbers.appendChild(btn);
+    }
+  };
+
+  document.getElementById('prev-page-btn').addEventListener('click', () => renderPage(currentPage - 1));
+  document.getElementById('next-page-btn').addEventListener('click', () => renderPage(currentPage + 1));
+  searchInput.addEventListener('input', () => renderPage(1));
 
   // --- Lógica de Navegación y Carga ---
   const showListView = () => { addDoctorView.classList.add('hidden'); doctorsView.classList.remove('hidden'); };
@@ -189,43 +314,24 @@
   backToListBtn.addEventListener('click', showListView);
 
   const loadDoctors = async () => {
-    doctorsTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></td></tr>`;
+    document.getElementById('doctors-grouped').innerHTML = `<div class="py-10 text-center"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>`;
     try {
       const querySnapshot = await getDocs(collection(db, "doctors"));
-      doctorsTableBody.innerHTML = '';
-      if (querySnapshot.empty) {
-        doctorsTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay médicos registrados.</td></tr>`;
-        return;
-      }
-      querySnapshot.forEach((docSnap) => {
-        const doctor = docSnap.data();
-        const docId = docSnap.id;
-        const row = `
-          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
-            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${doctor.name || 'N/A'}</th>
-            <td class="px-6 py-4">${doctor.specialty || 'N/A'}</td>
-            <td class="px-6 py-4">${doctor.city || 'N/A'}</td>
-            <td class="px-6 py-4 text-center space-x-4">
-              <button data-action="edit" data-id="${docId}" class="font-medium text-blue-600 hover:underline"><i class="fas fa-edit"></i></button>
-              <button data-action="delete" data-id="${docId}" class="font-medium text-red-600 hover:underline"><i class="fas fa-trash"></i></button>
-            </td>
-          </tr>`;
-        doctorsTableBody.innerHTML += row;
+      allDoctors = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, data: docSnap.data() }));
+      // Ordenar: primero por especialidad, luego por nombre
+      allDoctors.sort((a, b) => {
+        const spA = a.data.specialty || '';
+        const spB = b.data.specialty || '';
+        if (spA !== spB) return spA.localeCompare(spB);
+        return (a.data.name || '').localeCompare(b.data.name || '');
       });
+      renderPage(1);
     } catch (error) {
       console.error("Error al cargar médicos:", error);
-      doctorsTableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Error al cargar datos.</td></tr>`;
+      document.getElementById('doctors-grouped').innerHTML = `<p class="text-center py-10 text-red-500 text-sm">Error al cargar datos.</p>`;
     }
   };
 
-  doctorsTableBody.addEventListener('click', (e) => {
-    const button = e.target.closest('button[data-action]');
-    if (!button) return;
-    const { action, id } = button.dataset;
-    if (action === 'edit') openEditForm(id);
-    else if (action === 'delete') handleDeleteDoctor(id);
-  });
-  
   let procedureCount = 0, accountCount = 0, courseCount = 0, galleryCount = 0;
 
   const resetAndShowCreateForm = () => {
@@ -252,7 +358,6 @@
       const docRef = doc(db, "doctors", docId);
       const docSnap = await getDoc(docRef);
       if (!docSnap.exists()) throw new Error("Doctor no encontrado");
-      
       const doctor = docSnap.data();
       doctorForm.reset();
       proceduresContainer.innerHTML = '';
@@ -260,7 +365,6 @@
       coursesContainer.innerHTML = '';
       galleryContainer.innerHTML = '';
       procedureCount = 0; accountCount = 0; courseCount = 0; galleryCount = 0;
-
       for (const key in doctor) {
         const field = doctorForm.elements[key];
         if (field) {
@@ -268,17 +372,14 @@
           else field.value = doctor[key] ?? '';
         }
       }
-
       (doctor.services || []).forEach(proc => addProcedureField(proc));
       (doctor.bankAccounts || []).forEach(acc => addBankAccountField(acc));
       (doctor.courses || []).forEach(course => addCourseField(course));
       (doctor.beforeAndAfterImageUrls || []).forEach(pair => addGalleryField(pair));
-
       document.getElementById('doctorId').value = docId;
       document.getElementById('form-title').textContent = 'Editar Médico';
       document.getElementById('btn-text').textContent = 'Guardar Cambios';
       document.getElementById('auth-fieldset').disabled = true;
-      
       showFormView();
     } catch (error) {
       showError(`Error al cargar datos del doctor: ${error.message}`);
@@ -297,8 +398,7 @@
     }
   };
 
-  // --- Lógica para campos dinámicos ---
-
+  // --- Campos dinámicos ---
   const addProcedureField = (data = {}) => {
     procedureCount++;
     const div = document.createElement('div');
@@ -318,7 +418,7 @@
     proceduresContainer.appendChild(div);
   };
   if (addProcedureBtn) addProcedureBtn.addEventListener('click', () => addProcedureField());
-  
+
   const addBankAccountField = (data = {}) => {
     accountCount++;
     const div = document.createElement('div');
@@ -366,7 +466,7 @@
     coursesContainer.appendChild(div);
   };
   if (addCourseBtn) addCourseBtn.addEventListener('click', () => addCourseField());
-  
+
   const addGalleryField = (data = {}) => {
     galleryCount++;
     const div = document.createElement('div');
@@ -382,7 +482,7 @@
   };
   if (addGalleryBtn) addGalleryBtn.addEventListener('click', () => addGalleryField());
 
-  // --- RECOLECCIÓN Y ENVÍO DEL FORMULARIO ---
+  // --- Recolección y envío ---
   const collectProfileData = () => {
     const data = Object.fromEntries(new FormData(doctorForm).entries());
     const services = Array.from(proceduresContainer.querySelectorAll('.dynamic-field-row')).map(row => ({
@@ -392,7 +492,6 @@
       priceRegular: parseFloat(row.querySelector('[name="procedure_price_regular"]').value || 0),
       priceWithApp: parseFloat(row.querySelector('[name="procedure_price_app"]').value || 0),
     })).filter(s => s.name);
-    
     const bankAccounts = Array.from(bankAccountsContainer.querySelectorAll('.dynamic-field-row')).map(row => ({
       bankName: row.querySelector('[name="bank_name"]').value,
       accountType: row.querySelector('[name="bank_accountType"]').value,
@@ -400,17 +499,14 @@
       beneficiaryName: row.querySelector('[name="bank_beneficiaryName"]').value,
       beneficiaryId: row.querySelector('[name="bank_beneficiaryId"]').value,
     })).filter(acc => acc.bankName);
-
     const courses = Array.from(coursesContainer.querySelectorAll('.dynamic-field-row')).map(row => ({
       title: row.querySelector('[name="course_title"]').value,
       videoUrl: row.querySelector('[name="course_videoUrl"]').value,
     })).filter(course => course.title);
-
     const beforeAndAfterImageUrls = Array.from(galleryContainer.querySelectorAll('.dynamic-field-row')).map(row => ({
       before: row.querySelector('[name="gallery_before"]').value,
       after: row.querySelector('[name="gallery_after"]').value,
     })).filter(pair => pair.before && pair.after);
-
     return {
       name: data.name, city: data.city, specialty: data.specialty, subSpecialty: data.subSpecialty,
       about: data.about,
@@ -419,11 +515,7 @@
       priceRegular: parseFloat(data.priceRegular) || 0, priceWithApp: parseFloat(data.priceWithApp) || 0,
       rating: parseFloat(data.rating) || 0, reviewCount: parseInt(data.reviewCount) || 0,
       imagePath: data.imagePath, videoUrl: data.videoUrl || "",
-      services,
-      bankAccounts,
-      paymentLink: data.paymentLink || "", 
-      courses,
-      beforeAndAfterImageUrls,
+      services, bankAccounts, paymentLink: data.paymentLink || "", courses, beforeAndAfterImageUrls,
     };
   };
 
@@ -436,10 +528,8 @@
     btnText.classList.add('hidden');
     btnSpinner.classList.remove('hidden');
     hideMessages();
-
     const docId = document.getElementById('doctorId').value;
     const isEditMode = !!docId;
-
     try {
       const profileData = collectProfileData();
       if (isEditMode) {
@@ -464,7 +554,6 @@
     }
   });
 
-  // --- FUNCIONES AUXILIARES ---
   const showSuccess = (message) => {
     document.getElementById('success-text').textContent = message;
     successMessage.classList.remove('hidden');
@@ -480,6 +569,5 @@
     errorMessage.classList.add('hidden');
   };
 
-  // Carga inicial
   loadDoctors();
 </script>

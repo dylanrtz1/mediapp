@@ -20,11 +20,11 @@
       }
       .kpi-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
       }
       .skeleton {
         animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        background-color: #e5e7eb;
+        background-color: rgba(255,255,255,0.2);
         border-radius: 0.5rem;
       }
     </style>
@@ -34,8 +34,8 @@
 <div id="dashboard-content" class="p-4 sm:p-8 opacity-0 transition-opacity duration-500 text-white">
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10">
     <div>
-      <h1 class="text-4xl font-bold">Dashboard</h1>
-      <p class="text-gray-200 mt-1">Resumen en tiempo real del estado de la plataforma.</p>
+      <h1 class="text-4xl font-extrabold text-white">Dashboard</h1>
+      <p class="text-white font-bold mt-1">Resumen en tiempo real del estado de la plataforma.</p>
     </div>
     <div class="mt-4 sm:mt-0">
       <img src="img/logo.png" alt="Logo Cirugías de Lujo" class="h-16 w-auto brightness-200">
@@ -47,8 +47,8 @@
       <div class="flex items-center space-x-4">
         <div class="bg-white/20 p-4 rounded-full"><i class="fas fa-sack-dollar text-green-300 text-2xl"></i></div>
         <div>
-          <p class="text-gray-200 text-sm font-medium">Ingresos Aprobados (Mes)</p>
-          <div id="ingresos-mes" class="text-3xl font-bold text-white"><div class="skeleton h-8 w-32 mt-1"></div></div>
+          <p class="text-white font-bold text-sm">Ingresos Aprobados (Mes)</p>
+          <div id="ingresos-mes" class="text-3xl font-extrabold text-white"><div class="skeleton h-8 w-32 mt-1"></div></div>
         </div>
       </div>
     </div>
@@ -56,8 +56,8 @@
       <div class="flex items-center space-x-4">
         <div class="bg-white/20 p-4 rounded-full"><i class="fas fa-calendar-day text-blue-300 text-2xl"></i></div>
         <div>
-          <p class="text-gray-200 text-sm font-medium">Citas para Hoy</p>
-          <div id="citas-hoy" class="text-3xl font-bold text-white"><div class="skeleton h-8 w-16 mt-1"></div></div>
+          <p class="text-white font-bold text-sm">Citas para Hoy</p>
+          <div id="citas-hoy" class="text-3xl font-extrabold text-white"><div class="skeleton h-8 w-16 mt-1"></div></div>
         </div>
       </div>
     </div>
@@ -65,8 +65,8 @@
       <div class="flex items-center space-x-4">
         <div class="bg-white/20 p-4 rounded-full"><i class="fas fa-users text-yellow-300 text-2xl"></i></div>
         <div>
-          <p class="text-gray-200 text-sm font-medium">Nuevos Pacientes (Mes)</p>
-          <div id="nuevos-pacientes" class="text-3xl font-bold text-white"><div class="skeleton h-8 w-16 mt-1"></div></div>
+          <p class="text-white font-bold text-sm">Nuevos Pacientes (Mes)</p>
+          <div id="nuevos-pacientes" class="text-3xl font-extrabold text-white"><div class="skeleton h-8 w-16 mt-1"></div></div>
         </div>
       </div>
     </div>
@@ -74,25 +74,25 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-8">
     <div class="lg:col-span-3 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-white/20">
-      <h2 class="text-xl font-bold text-white mb-4">Servicios Más Populares</h2>
+      <h2 class="text-xl font-extrabold text-white mb-4">Servicios Más Populares</h2>
       <div class="h-80 relative"><canvas id="servicios-populares-chart"></canvas></div>
     </div>
     <div class="lg:col-span-2 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-white/20">
-      <h2 class="text-xl font-bold text-white mb-4">Citas por Estado</h2>
+      <h2 class="text-xl font-extrabold text-white mb-4">Citas por Estado</h2>
       <div class="h-80 relative"><canvas id="citas-por-estado-chart"></canvas></div>
     </div>
   </div>
 
   <div class="mt-8 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-white/20">
-    <h2 class="text-xl font-bold text-white mb-4">Próximas Citas</h2>
+    <h2 class="text-xl font-extrabold text-white mb-4">Próximas Citas</h2>
     <div class="overflow-x-auto">
       <table class="w-full text-left">
-        <thead class="border-b border-white/20">
+        <thead class="border-b border-white/30">
           <tr>
-            <th class="p-4 text-sm font-semibold text-gray-200">Paciente</th>
-            <th class="p-4 text-sm font-semibold text-gray-200">Doctor</th>
-            <th class="p-4 text-sm font-semibold text-gray-200">Fecha y Hora</th>
-            <th class="p-4 text-sm font-semibold text-gray-200">Estado</th>
+            <th class="p-4 text-sm font-extrabold text-white">Paciente</th>
+            <th class="p-4 text-sm font-extrabold text-white">Doctor</th>
+            <th class="p-4 text-sm font-extrabold text-white">Fecha y Hora</th>
+            <th class="p-4 text-sm font-extrabold text-white">Estado</th>
           </tr>
         </thead>
         <tbody id="proximas-citas-lista">
@@ -109,14 +109,12 @@
 </div>
 
 <script type="module">
- 
   import { collection, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-
-  const db = window.db; 
+  const db = window.db;
   let citasEstadoChart = null;
   let serviciosChart = null;
-  
+
   const formatCurrency = (value) => value.toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
 
   const loadDashboardData = async () => {
@@ -147,7 +145,7 @@
             acc[p.status || 'desconocido'] = (acc[p.status || 'desconocido'] || 0) + 1;
             return acc;
         }, {});
-        
+
         const ctxStatus = document.getElementById('citas-por-estado-chart').getContext('2d');
         if(citasEstadoChart) citasEstadoChart.destroy();
         citasEstadoChart = new Chart(ctxStatus, {
@@ -156,12 +154,25 @@
                 labels: ['Aprobadas', 'Pendientes', 'Rechazadas'],
                 datasets: [{
                     data: [statusCounts.aprobado || 0, statusCounts.pendiente || 0, statusCounts.rechazado || 0],
-                    backgroundColor: ['#22c55e', '#f97316', '#ef4444'],
-                    borderColor: '#ffffff',
+                    backgroundColor: ['#00e676', '#ff9100', '#ff1744'],
+                    borderColor: 'rgba(255,255,255,0.15)',
                     borderWidth: 4,
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ffffff',
+                            font: { weight: 'bold', size: 13 },
+                            padding: 16
+                        }
+                    }
+                }
+            }
         });
 
         const serviceCounts = pagos.reduce((acc, p) => {
@@ -173,9 +184,9 @@
             }
             return acc;
         }, {});
-        
+
         const sortedServices = Object.entries(serviceCounts).sort(([,a],[,b]) => b-a).slice(0, 7);
-            
+
         const ctxServicios = document.getElementById('servicios-populares-chart').getContext('2d');
         if(serviciosChart) serviciosChart.destroy();
         serviciosChart = new Chart(ctxServicios, {
@@ -185,48 +196,72 @@
                 datasets: [{
                     label: 'Nº de Veces Solicitado',
                     data: sortedServices.map(item => item[1]),
-                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: '#38bdf8',
+                    borderColor: '#ffffff',
                     borderWidth: 2,
                     borderRadius: 8,
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#ffffff', font: { weight: 'bold' } },
+                        grid: { color: 'rgba(255,255,255,0.15)' }
+                    },
+                    y: {
+                        ticks: { color: '#ffffff', font: { weight: 'bold' } },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
         });
 
         const proximasCitas = pagos.filter(p => p.appointmentDate.toDate() >= startOfToday).sort((a, b) => a.appointmentDate.toDate() - b.appointmentDate.toDate()).slice(0, 5);
-            
+
         const citasContainer = document.getElementById('proximas-citas-lista');
         citasContainer.innerHTML = '';
-        
+
         if (proximasCitas.length === 0) {
-            citasContainer.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-gray-500">No hay citas próximas agendadas.</td></tr>`;
+            citasContainer.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-white font-bold">No hay citas próximas agendadas.</td></tr>`;
         } else {
             proximasCitas.forEach(cita => {
                 const date = cita.appointmentDate.toDate();
                 const formattedDate = `${date.toLocaleDateString('es-EC')} - ${date.toLocaleTimeString('es-EC', {hour: '2-digit', minute:'2-digit'})}`;
-                const statusInfo = {'aprobado': {text: 'Aprobado', color: 'text-green-600 bg-green-100'}, 'pendiente': {text: 'Pendiente', color: 'text-orange-600 bg-orange-100'}, 'rechazado': {text: 'Rechazado', color: 'text-red-600 bg-red-100'}}[cita.status] || {text: 'N/A', color: 'text-gray-600 bg-gray-100'};
-                
-                const row = `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-medium text-gray-800">${cita.patientName || 'N/A'}</td><td class="p-4 text-gray-600">${cita.doctorName || 'N/A'}</td><td class="p-4 text-gray-600">${formattedDate}</td><td class="p-4"><span class="px-3 py-1 text-xs font-semibold rounded-full ${statusInfo.color}">${statusInfo.text}</span></td></tr>`;
+                const statusInfo = {
+                    'aprobado':  { text: 'Aprobado',  color: 'text-green-300 bg-green-500/30 border border-green-400/40' },
+                    'pendiente': { text: 'Pendiente', color: 'text-orange-300 bg-orange-500/30 border border-orange-400/40' },
+                    'rechazado': { text: 'Rechazado', color: 'text-red-300 bg-red-500/30 border border-red-400/40' }
+                }[cita.status] || { text: 'N/A', color: 'text-white bg-white/10 border border-white/20' };
+
+                const row = `<tr class="border-b border-white/10 hover:bg-white/10 transition-colors">
+                    <td class="p-4 font-bold text-white">${cita.patientName || 'N/A'}</td>
+                    <td class="p-4 font-bold text-white">${cita.doctorName || 'N/A'}</td>
+                    <td class="p-4 font-bold text-white">${formattedDate}</td>
+                    <td class="p-4"><span class="px-3 py-1 text-xs font-extrabold rounded-full ${statusInfo.color}">${statusInfo.text}</span></td>
+                </tr>`;
                 citasContainer.innerHTML += row;
             });
         }
     } catch (error) {
         console.error("Error al cargar los datos del dashboard:", error);
-        document.getElementById('dashboard-content').innerHTML = `<div class="text-center p-10 bg-red-100 text-red-700 rounded-lg"><h2 class="text-2xl font-bold mb-2">Error de Conexión</h2><p>No se pudieron cargar los datos. Revisa la consola para más detalles.</p></div>`;
+        document.getElementById('dashboard-content').innerHTML = `<div class="text-center p-10 bg-red-500/20 border border-red-400/40 text-white rounded-2xl"><h2 class="text-2xl font-extrabold mb-2">Error de Conexión</h2><p class="font-bold">No se pudieron cargar los datos. Revisa la consola para más detalles.</p></div>`;
     } finally {
         document.getElementById('dashboard-content').classList.add('fade-in');
         document.getElementById('dashboard-content').style.opacity = '1';
     }
   };
 
- 
   if (window.db) {
       loadDashboardData();
   } else {
       console.error("La base de datos de Firebase (window.db) no está disponible.");
   }
-
 </script>
 
 </body>

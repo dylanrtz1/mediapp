@@ -92,73 +92,83 @@ export const deleteDoctor = onCall(async (request) => {
 // NOVEDAD: FUNCIÓN AUTOMÁTICA PARA NOTIFICAR CAMBIOS DE ESTADO EN CITAS
 // =======================================================================
 export const notificarCambioDeEstadoCita = onDocumentUpdated("pagos/{pagoId}", async (event) => {
-  // Obtiene los datos del documento antes y después del cambio.
   const datosAnteriores = event.data?.before.data();
   const datosNuevos = event.data?.after.data();
 
-  // Si no hay datos o el estado no cambió, no hacemos nada.
   if (!datosAnteriores || !datosNuevos || datosAnteriores.status === datosNuevos.status) {
     console.log("El estado no cambió o no hay datos, no se envía notificación.");
     return;
   }
 
   const patientId = datosNuevos.patientId;
+
   if (!patientId) {
-    console.log("El documento no tiene 'patientId'.");
+    console.log("El documento no tiene patientId.");
     return;
   }
 
-  // Busca el documento del usuario para obtener su token de notificación.
   const userDoc = await db.collection("users").doc(patientId).get();
+
   if (!userDoc.exists) {
-    console.log(`No se encontró al usuario con ID: ${patientId}`);
+    console.log(`No se encontró el usuario ${patientId}`);
     return;
   }
 
   const fcmToken = userDoc.data()?.fcmToken;
+
   if (!fcmToken) {
-    console.log(`El usuario ${patientId} no tiene un token FCM.`);
+    console.log(`El usuario ${patientId} no tiene token FCM.`);
     return;
   }
 
   let tituloNotificacion = "";
   let cuerpoNotificacion = "";
 
-  // Preparamos el mensaje según el nuevo estado.
   if (datosNuevos.status === "aprobado") {
     tituloNotificacion = "¡Cita Aprobada! 🎉";
-    cuerpoNotificacion = `Tu cita con el Dr. ${datosNuevos.doctorName} ha sido confirmada.`;
+    cuerpoNotificacion =
+      `Tu cita con el Dr. ${datosNuevos.doctorName} ha sido confirmada.`;
   } else if (datosNuevos.status === "rechazado") {
     tituloNotificacion = "Cita Rechazada 🔴";
-    cuerpoNotificacion = "Hubo un problema con tu solicitud de cita. Contacta a soporte para más detalles.";
+    cuerpoNotificacion =
+      "Hubo un problema con tu solicitud de cita. Contacta a soporte para más detalles.";
   } else {
-    // Si el cambio es a otro estado (ej. 'pendiente'), no notificamos.
-    console.log(`Estado cambiado a '${datosNuevos.status}', no se requiere notificación.`);
+    console.log(`Estado '${datosNuevos.status}' no requiere notificación.`);
     return;
   }
 
-  // Contenido de la notificación push.
-  const payload = {
-    notification: {
-      title: tituloNotificacion,
-      body: cuerpoNotificacion,
-      sound: "default",
-    },
-    // Opcional: puedes enviar datos extra para manejar la notificación en la app
-    data: {
-      screen: "mis_citas",
-      pagoId: event.params.pagoId,
-    },
-  };
+  console.log("====================================");
+  console.log("INICIO ENVÍO NOTIFICACIÓN");
+  console.log("PatientId:", patientId);
+  console.log("PagoId:", event.params.pagoId);
+  console.log("Estado anterior:", datosAnteriores.status);
+  console.log("Estado nuevo:", datosNuevos.status);
+  console.log("Token:", fcmToken);
+  console.log("====================================");
 
-  console.log(`Enviando notificación al token: ${fcmToken}`);
-  
-  // Enviamos la notificación al dispositivo del usuario.
   try {
-    await admin.messaging().sendToDevice(fcmToken, payload);
-    console.log("Notificación enviada con éxito.");
-  } catch (error) {
-    console.error("Error al enviar la notificación:", error);
+    const message = {
+      token: fcmToken,
+      notification: {
+        title: tituloNotificacion,
+        body: cuerpoNotificacion,
+      },
+      data: {
+        screen: "mis_citas",
+        pagoId: String(event.params.pagoId),
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+
+    console.log("Notificación enviada correctamente.");
+    console.log("MessageId:", response);
+  } catch (error: any) {
+    console.error("====================================");
+    console.error("ERROR ENVIANDO NOTIFICACIÓN");
+    console.error(error);
+    console.error(JSON.stringify(error, null, 2));
+    console.error("====================================");
   }
 });
 
