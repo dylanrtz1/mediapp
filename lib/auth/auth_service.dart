@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -17,14 +19,41 @@ class AuthService {
       final user = _auth.currentUser;
       if (user == null || user.isAnonymous) return;
 
-      // Pedimos permiso solo la primera vez (iOS/Android)
-      await _fcm.requestPermission(
+      // 1. Pedimos permiso y verificamos la respuesta
+      NotificationSettings settings = await _fcm.requestPermission(
         alert: true,
         badge: true,
         sound: true,
         provisional: false,
       );
 
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        print("Permisos de notificaciones denegados por el usuario.");
+        return;
+      }
+
+      // 2. FIX CRÍTICO PARA iOS: Esperar el APNs Token explícitamente
+      if (Platform.isIOS) {
+        // Firebase en iOS necesita el APNs token antes de generar el FCM token
+        String? apnsToken = await _fcm.getAPNSToken();
+        int retries = 0;
+
+        // Reintentar hasta 5 veces (esperando 1 seg) porque iOS puede demorar
+        while (apnsToken == null && retries < 5) {
+          await Future.delayed(const Duration(seconds: 1));
+          apnsToken = await _fcm.getAPNSToken();
+          retries++;
+        }
+
+        if (apnsToken == null) {
+          print("ERROR CRÍTICO IOS: Nunca se recibió el APNs Token de Apple.");
+          print("Falta habilitar la Capability de 'Push Notifications'.");
+        } else {
+          print("APNs Token nativo recibido con éxito: $apnsToken");
+        }
+      }
+
+      // 3. Ahora sí pedimos el token de Firebase
       final fcmToken = await _fcm.getToken();
       if (fcmToken == null) {
         print("No se pudo obtener el token FCM");
