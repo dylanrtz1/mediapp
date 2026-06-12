@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'dart:io' show Platform;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -12,14 +11,14 @@ class AuthService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   // ================================================================
-  // TOKEN FCM: GUARDADO INICIAL + ACTUALIZACIÓN AUTOMÁTICA (NUNCA FALLA)
+  // TOKEN FCM: GUARDADO INICIAL + ACTUALIZACIÓN AUTOMÁTICA (FIX iOS)
   // ================================================================
   Future<void> _saveOrUpdateDeviceToken() async {
     try {
       final user = _auth.currentUser;
       if (user == null || user.isAnonymous) return;
 
-      // 1. Pedimos permiso y verificamos la respuesta
+      // 1. Pedimos permiso
       NotificationSettings settings = await _fcm.requestPermission(
         alert: true,
         badge: true,
@@ -28,17 +27,19 @@ class AuthService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
-        print("Permisos de notificaciones denegados por el usuario.");
+        await _firestore.collection('users').doc(user.uid).set({
+          'fcmError': 'Permisos denegados por el usuario en iOS',
+        }, SetOptions(merge: true));
         return;
       }
 
-      // 2. FIX CRÍTICO PARA iOS: Esperar el APNs Token explícitamente
+      // 2. Esperar el APNs Token explícitamente en iOS
+      String? apnsToken;
       if (Platform.isIOS) {
-        // Firebase en iOS necesita el APNs token antes de generar el FCM token
-        String? apnsToken = await _fcm.getAPNSToken();
+        apnsToken = await _fcm.getAPNSToken();
         int retries = 0;
 
-        // Reintentar hasta 5 veces (esperando 1 seg) porque iOS puede demorar
+        // Reintentamos 5 veces, dándole tiempo a iOS para generar el token
         while (apnsToken == null && retries < 5) {
           await Future.delayed(const Duration(seconds: 1));
           apnsToken = await _fcm.getAPNSToken();
@@ -46,33 +47,46 @@ class AuthService {
         }
 
         if (apnsToken == null) {
-          print("ERROR CRÍTICO IOS: Nunca se recibió el APNs Token de Apple.");
-          print("Falta habilitar la Capability de 'Push Notifications'.");
-        } else {
-          print("APNs Token nativo recibido con éxito: $apnsToken");
+          await _firestore.collection('users').doc(user.uid).set({
+            'fcmError': 'APNs Token nativo es nulo. Revisa los Entitlements y Capabilities en Apple.',
+          }, SetOptions(merge: true));
+          return; // Salimos porque sin APNs de Apple, Firebase no nos dará el FCM Token
         }
       }
 
-      // 3. Ahora sí pedimos el token de Firebase
+      // 3. Pedimos el token de Firebase
       final fcmToken = await _fcm.getToken();
       if (fcmToken == null) {
-        print("No se pudo obtener el token FCM");
+        await _firestore.collection('users').doc(user.uid).set({
+          'fcmError': 'FCM Token retornó nulo',
+        }, SetOptions(merge: true));
         return;
       }
 
-      await _firestore.collection('users').doc(user.uid).set({
+      // 4. Guardado exitoso (Limpiamos cualquier error previo)
+      Map<String, dynamic> tokenData = {
         'fcmToken': fcmToken,
         'lastTokenUpdate': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+        'fcmError': FieldValue.delete(), // Borra el error si ya funcionó
+      };
 
+      if (Platform.isIOS && apnsToken != null) {
+        tokenData['apnsTokenNativo'] = apnsToken;
+      }
+
+      await _firestore.collection('users').doc(user.uid).set(tokenData, SetOptions(merge: true));
       print("Token FCM guardado/actualizado: $fcmToken");
+
     } catch (e) {
-      print("Error al guardar token FCM: $e");
+      final user = _auth.currentUser;
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'fcmError': e.toString(),
+        }, SetOptions(merge: true));
+      }
     }
   }
 
-  // Listener que se ejecuta AUTOMÁTICAMENTE cuando Firebase renueva el token
-  // (esto es lo que hacía que fallara antes: si no lo tienes, el token viejo deja de funcionar)
   void _setupTokenRefreshListener() {
     _fcm.onTokenRefresh.listen((newToken) async {
       final user = _auth.currentUser;
@@ -82,7 +96,6 @@ class AuthService {
             'fcmToken': newToken,
             'lastTokenUpdate': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
-          print("Token FCM renovado automáticamente: $newToken");
         } catch (e) {
           print("Error al renovar token FCM: $e");
         }
@@ -90,22 +103,13 @@ class AuthService {
     });
   }
 
-  // ================================================================
-  // CONSTRUCTOR: Activa el listener desde el primer momento
-  // ================================================================
   AuthService() {
-    // Esto se ejecuta una sola vez cuando creas AuthService()
     _setupTokenRefreshListener();
   }
-
-  // ================================================================
-  // MÉTODOS DE AUTENTICACIÓN (todos con token actualizado)
-  // ================================================================
 
   Future<User?> signInAnonymously() async {
     try {
       final userCredential = await _auth.signInAnonymously();
-      print("Invitado: ${userCredential.user?.uid}");
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
       throw Exception(e.message ?? 'Error en modo invitado');
@@ -115,7 +119,7 @@ class AuthService {
   Future<User?> signInWithEmailAndPassword(String email, String password) async {
     try {
       final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
-      await _saveOrUpdateDeviceToken(); // Token fresco al loguear
+      await _saveOrUpdateDeviceToken();
       return cred.user;
     } on FirebaseAuthException catch (e) {
       throw Exception(e.message ?? 'Error al iniciar sesión');
