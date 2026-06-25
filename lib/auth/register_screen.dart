@@ -451,8 +451,11 @@ Las partes intervinientes aceptan el presente contrato de manera electrónica y 
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildSocialButton(icon: FontAwesomeIcons.google, color: Colors.red, onPressed: _isLoading ? (){} : () => _socialRegister(_authService.signInWithGoogle)),
+        // Botón de Facebook comentado temporalmente a petición del usuario
+        /*
         const SizedBox(width: 24),
         _buildSocialButton(icon: FontAwesomeIcons.facebook, color: Colors.blue.shade800, onPressed: _isLoading ? (){} : () => _socialRegister(_authService.signInWithFacebook)),
+        */
       ],
     );
   }

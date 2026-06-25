@@ -71,12 +71,13 @@
             <th class="p-4 text-sm font-semibold text-gray-500">Teléfono</th>
             <th class="p-4 text-sm font-semibold text-gray-500">Ciudad</th>
             <th class="p-4 text-sm font-semibold text-gray-500">Fecha de Registro</th>
+            <th class="p-4 text-sm font-semibold text-gray-500 text-center">Acciones</th>
           </tr>
         </thead>
         <tbody id="pacientes-lista">
-          <tr><td colspan="5" class="p-4"><div class="skeleton h-5 w-full"></div></td></tr>
-          <tr><td colspan="5" class="p-4"><div class="skeleton h-5 w-full"></div></td></tr>
-          <tr><td colspan="5" class="p-4"><div class="skeleton h-5 w-full"></div></td></tr>
+          <tr><td colspan="6" class="p-4"><div class="skeleton h-5 w-full"></div></td></tr>
+          <tr><td colspan="6" class="p-4"><div class="skeleton h-5 w-full"></div></td></tr>
+          <tr><td colspan="6" class="p-4"><div class="skeleton h-5 w-full"></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -97,17 +98,31 @@
   </div>
 </div>
 
+<!-- Modal de confirmación para eliminar paciente -->
+<div id="delete-patient-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50 hidden">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+    <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
+      <i class="fas fa-trash text-red-600 text-xl"></i>
+    </div>
+    <h3 class="text-lg font-bold text-gray-800 mb-2">Eliminar paciente</h3>
+    <p id="delete-patient-text" class="text-sm text-gray-500 mb-6">¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer.</p>
+    <div class="flex gap-3">
+      <button id="delete-patient-cancel" class="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition">Cancelar</button>
+      <button id="delete-patient-confirm" class="flex-1 px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
-  import { collection, getDocs, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { collection, getDocs, query, where, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const db = window.db;
   let allPatients = [];
-  let lastVisible = null;
-  let firstVisible = null;
+  let currentList = []; // lista actualmente visible (todos o filtrados por búsqueda)
   let currentPage = 1;
   const PAGE_SIZE = 15;
   let totalPages = 1;
-  let isSearching = false;
+  let pendingDeleteId = null;
 
   const loadInitialData = async () => {
     try {
@@ -115,9 +130,8 @@
       const usersSnapshot = await getDocs(q);
       allPatients = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       allPatients.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-      
-      totalPages = Math.ceil(allPatients.length / PAGE_SIZE);
 
+      currentList = allPatients;
       renderKPIs(allPatients);
       renderGrowthChart(allPatients);
       renderTablePage(1);
@@ -148,11 +162,15 @@
   };
 
   const renderTablePage = (page) => {
+    totalPages = Math.ceil(currentList.length / PAGE_SIZE) || 1;
+    if (page > totalPages) page = totalPages;
+    if (page < 1) page = 1;
+    currentPage = page;
+
     const start = (page - 1) * PAGE_SIZE;
     const end = start + PAGE_SIZE;
-    const patientsToShow = allPatients.slice(start, end);
+    const patientsToShow = currentList.slice(start, end);
     renderTable(patientsToShow);
-    currentPage = page;
     updatePaginationControls();
   };
   
@@ -161,14 +179,25 @@
     tableBody.innerHTML = '';
 
     if (patients.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-500">No se encontraron pacientes.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-gray-500">No se encontraron pacientes.</td></tr>`;
         return;
     }
     
     patients.forEach(patient => {
         const fullName = `${patient.nombre || ''} ${patient.apellido || ''}`.trim();
         const createdAt = patient.createdAt ? patient.createdAt.toDate().toLocaleDateString('es-EC') : 'N/A';
-        const row = `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-medium text-gray-800">${fullName}</td><td class="p-4 text-gray-600">${patient.email || 'N/A'}</td><td class="p-4 text-gray-600">${patient.telefono || 'N/A'}</td><td class="p-4 text-gray-600">${patient.city || 'N/A'}</td><td class="p-4 text-gray-600">${createdAt}</td></tr>`;
+        const row = `<tr class="border-b border-gray-100 hover:bg-gray-50">
+          <td class="p-4 font-medium text-gray-800">${fullName || 'N/A'}</td>
+          <td class="p-4 text-gray-600">${patient.email || 'N/A'}</td>
+          <td class="p-4 text-gray-600">${patient.telefono || 'N/A'}</td>
+          <td class="p-4 text-gray-600">${patient.city || 'N/A'}</td>
+          <td class="p-4 text-gray-600">${createdAt}</td>
+          <td class="p-4 text-center">
+            <button data-action="delete" data-id="${patient.id}" class="text-red-500 hover:text-red-700 transition" title="Eliminar paciente">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>`;
         tableBody.innerHTML += row;
     });
   };
@@ -205,34 +234,76 @@
     });
   };
 
+  // --- Búsqueda (ahora con paginación incluida) ---
   document.getElementById('search-pacientes').addEventListener('input', (e) => {
     const searchTerm = e.target.value.toLowerCase().trim();
     if (searchTerm === '') {
-        isSearching = false;
-        renderTablePage(1);
-        document.getElementById('pagination-controls').style.display = 'flex';
+        currentList = allPatients;
     } else {
-        isSearching = true;
-        const filteredPatients = allPatients.filter(p => {
+        currentList = allPatients.filter(p => {
             const fullName = `${p.nombre || ''} ${p.apellido || ''}`.toLowerCase();
             const email = (p.email || '').toLowerCase();
             return fullName.includes(searchTerm) || email.includes(searchTerm);
         });
-        renderTable(filteredPatients);
-        document.getElementById('pagination-controls').style.display = 'none';
     }
+    renderTablePage(1);
   });
 
+  // --- Paginación ---
   document.getElementById('prev-page').addEventListener('click', () => {
-    if (currentPage > 1) {
-        renderTablePage(currentPage - 1);
-    }
+    if (currentPage > 1) renderTablePage(currentPage - 1);
   });
 
   document.getElementById('next-page').addEventListener('click', () => {
-    if (currentPage < totalPages) {
-        renderTablePage(currentPage + 1);
+    if (currentPage < totalPages) renderTablePage(currentPage + 1);
+  });
+
+  // --- Eliminar paciente ---
+  const deleteModal = document.getElementById('delete-patient-modal');
+  const deleteCancelBtn = document.getElementById('delete-patient-cancel');
+  const deleteConfirmBtn = document.getElementById('delete-patient-confirm');
+
+  const showDeleteModal = (docId) => {
+    pendingDeleteId = docId;
+    deleteModal.classList.remove('hidden');
+  };
+  const hideDeleteModal = () => {
+    pendingDeleteId = null;
+    deleteModal.classList.add('hidden');
+  };
+  deleteCancelBtn.addEventListener('click', hideDeleteModal);
+  deleteModal.addEventListener('click', (e) => {
+    if (e.target === deleteModal) hideDeleteModal();
+  });
+
+  deleteConfirmBtn.addEventListener('click', async () => {
+    if (!pendingDeleteId) return;
+    const docId = pendingDeleteId;
+    deleteConfirmBtn.disabled = true;
+    deleteConfirmBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+    try {
+      await deleteDoc(doc(db, "users", docId));
+
+      allPatients = allPatients.filter(p => p.id !== docId);
+      currentList = currentList.filter(p => p.id !== docId);
+
+      renderKPIs(allPatients);
+      renderGrowthChart(allPatients);
+      renderTablePage(currentPage);
+      hideDeleteModal();
+    } catch (error) {
+      console.error("Error al eliminar paciente:", error);
+      alert("No se pudo eliminar el paciente.");
+    } finally {
+      deleteConfirmBtn.disabled = false;
+      deleteConfirmBtn.textContent = 'Eliminar';
     }
+  });
+
+  document.getElementById('pacientes-lista').addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-action="delete"]');
+    if (!button) return;
+    showDeleteModal(button.dataset.id);
   });
 
   if (window.db) {

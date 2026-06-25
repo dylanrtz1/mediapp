@@ -457,12 +457,15 @@ class _LoginScreenState extends State<LoginScreen>
           color: Colors.red,
           onPressed: () => _socialLogin(_authService.signInWithGoogle),
         ),
+        // Botón de Facebook comentado temporalmente a petición del usuario
+        /*
         const SizedBox(width: 24),
         _buildSocialButton(
           icon: FontAwesomeIcons.facebook,
           color: Colors.blue.shade800,
           onPressed: () => _socialLogin(_authService.signInWithFacebook),
         ),
+        */
       ],
     );
   }

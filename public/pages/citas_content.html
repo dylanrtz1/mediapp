@@ -30,10 +30,6 @@
 
 <div id="citas-content" class="fade-in p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10">
-    <div>
-      <h1 class="text-4xl font-bold text-gray-800">Gestión de Citas</h1>
-      <p class="text-gray-500 mt-1">Aprueba, rechaza y visualiza todas las solicitudes de citas.</p>
-    </div>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -80,7 +76,10 @@
       </div>
     </div>
 
-   
+    <div class="flex items-center justify-end mb-2">
+      <span class="text-sm text-gray-500">Total: <span id="total-count" class="font-bold text-gray-700">0</span> citas</span>
+    </div>
+
     <div class="overflow-x-auto overflow-y-visible relative">
       <table class="w-full text-left">
         <thead class="border-b-2 border-gray-100">
@@ -115,8 +114,23 @@
   </div>
 </div>
 
+<!-- Modal de confirmación para eliminar -->
+<div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50 hidden">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+    <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
+      <i class="fas fa-trash text-red-600 text-xl"></i>
+    </div>
+    <h3 class="text-lg font-bold text-gray-800 mb-2">Eliminar cita</h3>
+    <p id="delete-modal-text" class="text-sm text-gray-500 mb-6">¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer.</p>
+    <div class="flex gap-3">
+      <button id="delete-cancel-btn" class="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition">Cancelar</button>
+      <button id="delete-confirm-btn" class="flex-1 px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
-  import { collection, getDocs, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const db = window.db;
   let allPayments = [];
@@ -125,7 +139,17 @@
   let currentPage = 1;
   const PAGE_SIZE = 10;
   let totalPages = 1;
+  let pendingDeleteId = null;
 
+  // Metadatos de categoría por estado (para los separadores)
+  const STATUS_META = {
+    pendiente: { label: 'Pendientes', color: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-400', icon: 'fa-hourglass-half' },
+    aprobado:  { label: 'Aprobadas',  color: 'bg-green-50 text-green-700 border-green-200',   dot: 'bg-green-400',  icon: 'fa-calendar-check' },
+    rechazado: { label: 'Rechazadas', color: 'bg-red-50 text-red-700 border-red-200',         dot: 'bg-red-400',    icon: 'fa-calendar-times' },
+  };
+  const DEFAULT_META = { label: 'Otros', color: 'bg-gray-50 text-gray-700 border-gray-200', dot: 'bg-gray-400', icon: 'fa-question-circle' };
+
+  // --- Modal comprobante ---
   const receiptModal = document.getElementById('receipt-modal');
   const receiptImage = document.getElementById('receipt-image');
   const closeModalBtn = document.getElementById('close-modal');
@@ -139,6 +163,42 @@
   closeModalBtn.addEventListener('click', hideReceiptModal);
   receiptModal.addEventListener('click', (e) => {
     if (e.target === receiptModal) hideReceiptModal();
+  });
+
+  // --- Modal eliminar ---
+  const deleteModal = document.getElementById('delete-modal');
+  const deleteCancelBtn = document.getElementById('delete-cancel-btn');
+  const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
+
+  const showDeleteModal = (docId) => {
+    pendingDeleteId = docId;
+    deleteModal.classList.remove('hidden');
+  };
+  const hideDeleteModal = () => {
+    pendingDeleteId = null;
+    deleteModal.classList.add('hidden');
+  };
+  deleteCancelBtn.addEventListener('click', hideDeleteModal);
+  deleteModal.addEventListener('click', (e) => {
+    if (e.target === deleteModal) hideDeleteModal();
+  });
+  deleteConfirmBtn.addEventListener('click', async () => {
+    if (!pendingDeleteId) return;
+    const docId = pendingDeleteId;
+    deleteConfirmBtn.disabled = true;
+    deleteConfirmBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+    try {
+      await deleteDoc(doc(db, "pagos", docId));
+      allPayments = allPayments.filter(p => p.id !== docId);
+      hideDeleteModal();
+      renderUI();
+    } catch (error) {
+      console.error("Error al eliminar la cita:", error);
+      alert("No se pudo eliminar la cita.");
+    } finally {
+      deleteConfirmBtn.disabled = false;
+      deleteConfirmBtn.textContent = 'Eliminar';
+    }
   });
 
   const safeToDate = (maybeTs) => {
@@ -161,7 +221,6 @@
       }
 
       renderUI();
-      alert(`Cita ${actionText}da con éxito.`);
     } catch (error) {
       console.error(`Error al ${actionText} la cita:`, error);
       alert(`No se pudo ${actionText} la cita.`);
@@ -206,20 +265,105 @@
       ingresosMes.toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
   };
 
-  const renderTable = () => {
-    let filteredPayments = allPayments;
+  const getFilteredPayments = () => {
+    let filtered = allPayments;
 
     if (currentFilter !== 'todos') {
-      filteredPayments = filteredPayments.filter(p => p.status === currentFilter);
+      filtered = filtered.filter(p => p.status === currentFilter);
     }
 
     const lowerCaseSearch = (searchTerm || '').toLowerCase();
     if (lowerCaseSearch) {
-      filteredPayments = filteredPayments.filter(p =>
+      filtered = filtered.filter(p =>
         (p.patientName || '').toLowerCase().includes(lowerCaseSearch) ||
         (p.doctorName || '').toLowerCase().includes(lowerCaseSearch)
       );
     }
+
+    return filtered;
+  };
+
+  // Construye el HTML de una fila de cita
+  const buildRow = (p) => {
+    const dateObj = safeToDate(p.appointmentDate);
+    const formattedDate = dateObj
+      ? `${dateObj.toLocaleDateString('es-EC')} ${dateObj.toLocaleTimeString('es-EC', {hour: '2-digit', minute:'2-digit'})}`
+      : 'N/D';
+    const statusClass = `status-${p.status}`;
+
+    const menuItems = [];
+    if (p.status === 'pendiente') {
+      menuItems.push(`<a href="#" data-action="approve" data-id="${p.id}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-green-700" role="menuitem"><i class="fas fa-check w-4 mr-2"></i>Aprobar</a>`);
+      menuItems.push(`<a href="#" data-action="reject" data-id="${p.id}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-red-700" role="menuitem"><i class="fas fa-times w-4 mr-2"></i>Rechazar</a>`);
+      menuItems.push(`<div class="border-t border-gray-100"></div>`);
+    }
+    menuItems.push(`<a href="#" data-action="delete" data-id="${p.id}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem"><i class="fas fa-trash w-4 mr-2"></i>Eliminar</a>`);
+
+    const actionsHtml = `
+      <div class="relative inline-block text-left">
+        <button data-action="toggle-menu"
+                class="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+          Acciones <i class="fas fa-chevron-down ml-1 text-xs"></i>
+        </button>
+        <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50"
+             role="menu" aria-orientation="vertical" aria-hidden="true">
+          <div class="py-1" role="none">
+            ${menuItems.join('')}
+          </div>
+        </div>
+      </div>
+    `;
+
+    return `
+      <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+        <td class="p-4">
+          <div class="font-medium text-gray-800">${p.patientName || 'N/A'}</div>
+          <div class="text-xs text-gray-500 break-all">${p.patientEmail || ''}</div>
+        </td>
+        <td class="p-4 text-gray-600">${p.doctorName || 'N/A'}</td>
+        <td class="p-4 text-gray-600">${formattedDate}</td>
+        <td class="p-4 font-bold text-gray-800">
+          ${(p.totalAmount || 0).toLocaleString('es-EC', { style: 'currency', currency: 'USD' })}
+        </td>
+        <td class="p-4 text-center">
+          <span class="status-badge ${statusClass}">${p.status}</span>
+        </td>
+        <td class="p-4 text-center">
+          <div class="flex justify-center items-center space-x-2">
+            <button data-action="view-receipt" data-url="${p.receiptUrl || ''}"
+                    class="text-blue-600 hover:underline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    ${!p.receiptUrl ? 'disabled' : ''}>
+              Ver Comp.
+            </button>
+            ${actionsHtml}
+          </div>
+        </td>
+      </tr>
+    `;
+  };
+
+  // Fila separadora de categoría (estilo elegante, igual al de Médicos)
+  const buildCategoryRow = (statusKey, count) => {
+    const meta = STATUS_META[statusKey] || DEFAULT_META;
+    return `
+      <tr>
+        <td colspan="6" class="pt-6 pb-2">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${meta.color}">
+              <i class="fas ${meta.icon} text-xs"></i>${meta.label}
+            </span>
+            <div class="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent"></div>
+            <span class="text-xs text-gray-400 font-medium">${count} cita${count !== 1 ? 's' : ''}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  };
+
+  const renderTable = () => {
+    const filteredPayments = getFilteredPayments();
+
+    document.getElementById('total-count').textContent = filteredPayments.length;
 
     totalPages = Math.ceil(filteredPayments.length / PAGE_SIZE) || 1;
     if (currentPage > totalPages) currentPage = 1;
@@ -233,64 +377,22 @@
 
     if (paginatedPayments.length === 0) {
       tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-gray-500">No se encontraron citas con los filtros actuales.</td></tr>`;
-    } else {
+    } else if (currentFilter === 'todos') {
+      // Agrupar por categoría (estado) dentro de la página actual
+      const groups = {};
+      const order = [];
       paginatedPayments.forEach(p => {
-        const dateObj = safeToDate(p.appointmentDate);
-        const formattedDate = dateObj
-          ? `${dateObj.toLocaleDateString('es-EC')} ${dateObj.toLocaleTimeString('es-EC', {hour: '2-digit', minute:'2-digit'})}`
-          : 'N/D';
-        const statusClass = `status-${p.status}`;
-
-        const actionsHtml = p.status === 'pendiente' ? `
-          <div class="relative inline-block text-left">
-            <button data-action="toggle-menu"
-                    class="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-              Acciones <i class="fas fa-chevron-down ml-1 text-xs"></i>
-            </button>
-            <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-50"
-                 role="menu" aria-orientation="vertical" aria-hidden="true">
-              <div class="py-1" role="none">
-                <a href="#"
-                   data-action="approve" data-id="${p.id}"
-                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-green-700"
-                   role="menuitem">Aprobar</a>
-                <a href="#"
-                   data-action="reject" data-id="${p.id}"
-                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-red-700"
-                   role="menuitem">Rechazar</a>
-              </div>
-            </div>
-          </div>
-        ` : `-`;
-
-        const row = `
-          <tr class="border-b border-gray-100">
-            <td class="p-4">
-              <div class="font-medium text-gray-800">${p.patientName || 'N/A'}</div>
-              <div class="text-xs text-gray-500 break-all">${p.patientEmail || ''}</div>
-            </td>
-            <td class="p-4 text-gray-600">${p.doctorName || 'N/A'}</td>
-            <td class="p-4 text-gray-600">${formattedDate}</td>
-            <td class="p-4 font-bold text-gray-800">
-              ${(p.totalAmount || 0).toLocaleString('es-EC', { style: 'currency', currency: 'USD' })}
-            </td>
-            <td class="p-4 text-center">
-              <span class="status-badge ${statusClass}">${p.status}</span>
-            </td>
-            <td class="p-4 text-center">
-              <div class="flex justify-center items-center space-x-2">
-                <button data-action="view-receipt" data-url="${p.receiptUrl || ''}"
-                        class="text-blue-600 hover:underline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        ${!p.receiptUrl ? 'disabled' : ''}>
-                  Ver Comp.
-                </button>
-                ${actionsHtml}
-              </div>
-            </td>
-          </tr>
-        `;
-        tableBody.insertAdjacentHTML('beforeend', row);
+        const key = p.status || 'otro';
+        if (!groups[key]) { groups[key] = []; order.push(key); }
+        groups[key].push(p);
       });
+
+      order.forEach(key => {
+        tableBody.insertAdjacentHTML('beforeend', buildCategoryRow(key, groups[key].length));
+        groups[key].forEach(p => tableBody.insertAdjacentHTML('beforeend', buildRow(p)));
+      });
+    } else {
+      paginatedPayments.forEach(p => tableBody.insertAdjacentHTML('beforeend', buildRow(p)));
     }
 
     document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}`;
@@ -322,16 +424,7 @@
   });
 
   document.getElementById('next-page').addEventListener('click', () => {
-    const lowerCaseSearch = (searchTerm || '').toLowerCase();
-    const filteredCount = allPayments.filter(p =>
-      (currentFilter === 'todos' || p.status === currentFilter) &&
-      (
-        (p.patientName || '').toLowerCase().includes(lowerCaseSearch) ||
-        (p.doctorName || '').toLowerCase().includes(lowerCaseSearch)
-      )
-    ).length;
-    const maxPages = Math.ceil(filteredCount / PAGE_SIZE) || 1;
-    if (currentPage < maxPages) { currentPage++; renderTable(); }
+    if (currentPage < totalPages) { currentPage++; renderTable(); }
   });
 
   // Acciones en tabla (delegación)
@@ -359,6 +452,10 @@
         const docId = clickable.dataset.id;
         const newStatus = action === 'approve' ? 'aprobado' : 'rechazado';
         updateStatus(docId, newStatus);
+      }
+      if (action === 'delete') {
+        const docId = clickable.dataset.id;
+        showDeleteModal(docId);
       }
       if (action === 'view-receipt') {
         const url = clickable.dataset.url;

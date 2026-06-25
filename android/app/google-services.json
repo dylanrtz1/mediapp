@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "277007509883-1ndfit54donukfo6lb4clqe13g3b19kr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.medi.mediapp",
+            "certificate_hash": "980fcd3aaf1dbd335f40c70fb77352d8a6c0b9d1"
+          }
+        },
+        {
           "client_id": "277007509883-fjvkkl00tv0citjkgv1m15ru0u7p75r3.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

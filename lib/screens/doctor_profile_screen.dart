@@ -547,6 +547,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   }
 }
 
+// -----------------------------------------------------------------------------
+// MEJORAS APLICADAS A LA GALERIA DE CASOS (ANTES Y DESPUÉS)
+// -----------------------------------------------------------------------------
 class CaseGalleryGrid extends StatelessWidget {
   final List<dynamic> images;
   const CaseGalleryGrid({super.key, required this.images});
@@ -561,10 +564,25 @@ class CaseGalleryGrid extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Text(
-            "Galería de Casos (Antes y Después)",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kWhiteColor),
+            "Galería de Casos",
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w300, // Fuente más fina para mayor elegancia
+              color: kWhiteColor,
+              letterSpacing: 1.2,
+            ),
           ),
-          const SizedBox(height: 1),
+          const SizedBox(height: 2),
+          Text(
+            "ANTES Y DESPUÉS",
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+              color: kWhiteColor.withOpacity(0.8),
+              letterSpacing: 4.0, // Letras espaciadas para un toque premium
+            ),
+          ),
+          const SizedBox(height: 15),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -590,33 +608,40 @@ class CaseGalleryGrid extends StatelessWidget {
   }
 
   Widget _buildGalleryItem(BuildContext context, String beforeUrl, String afterUrl, String name) {
+    // Mostramos una sola imagen como portada (priorizamos el resultado 'antes')
     final displayUrl = beforeUrl.isNotEmpty ? beforeUrl : afterUrl;
 
     return GestureDetector(
       onTap: () {
-        _openImageViewer(context, displayUrl, name);
+        // Al dar clic, mandamos las dos fotos al visor deslizable
+        _openImageViewer(context, beforeUrl, afterUrl, name);
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15.0),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(
-              displayUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200),
-            ),
+            // Vista de una sola imagen sin línea divisoria
+            displayUrl.isNotEmpty
+                ? Image.network(displayUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade300))
+                : Container(color: Colors.grey.shade300),
+
+            // Gradiente elegante y sutil en la parte inferior para resaltar el texto
             Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
+              bottom: 0, left: 0, right: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                color: Colors.black.withOpacity(0.5),
+                padding: const EdgeInsets.only(top: 20, bottom: 8, left: 4, right: 4),
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                    )
+                ),
                 child: Text(
                   name.toUpperCase(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: kWhiteColor, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: kWhiteColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -628,22 +653,104 @@ class CaseGalleryGrid extends StatelessWidget {
     );
   }
 
-  void _openImageViewer(BuildContext context, String imageUrl, String name) {
+  void _openImageViewer(BuildContext context, String beforeUrl, String afterUrl, String name) {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent, // Cambiado a transparente para lucir las burbujas
       barrierDismissible: false,
+      useSafeArea: false,
       builder: (context) {
-        return Stack(
+        return BeforeAfterViewer(
+          beforeUrl: beforeUrl,
+          afterUrl: afterUrl,
+          name: name,
+        );
+      },
+    );
+  }
+}
+
+// NUEVO WIDGET para controlar el Swipe de Antes a Después
+class BeforeAfterViewer extends StatefulWidget {
+  final String beforeUrl;
+  final String afterUrl;
+  final String name;
+
+  const BeforeAfterViewer({
+    super.key,
+    required this.beforeUrl,
+    required this.afterUrl,
+    required this.name,
+  });
+
+  @override
+  State<BeforeAfterViewer> createState() => _BeforeAfterViewerState();
+}
+
+class _BeforeAfterViewerState extends State<BeforeAfterViewer> {
+  final PageController _pageController = PageController();
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: GradientBackground( // Aplicamos el fondo de burbujas animadas aquí
+        child: Stack(
           children: [
-            Container(color: Colors.black.withOpacity(0.9)),
-            Center(
-              child: InteractiveViewer(
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain,
-                ),
+            // Visualizador deslizable
+            PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              children: [
+                _buildPage(widget.beforeUrl),
+                _buildPage(widget.afterUrl),
+              ],
+            ),
+
+            // Textos e Indicadores (Arriba)
+            Positioned(
+              top: 50,
+              left: 0,
+              right: 0,
+              child: Column(
+                children: [
+                  Text(
+                    widget.name.toUpperCase(),
+                    style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    _currentIndex == 0 ? "ANTES" : "DESPUÉS",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 3,
+                      shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Indicador de Swipe
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.arrow_back_ios, color: _currentIndex == 1 ? kWhiteColor : Colors.white38, size: 16),
+                      const SizedBox(width: 8),
+                      const Text("Desliza", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+                      const SizedBox(width: 8),
+                      Icon(Icons.arrow_forward_ios, color: _currentIndex == 0 ? kWhiteColor : Colors.white38, size: 16),
+                    ],
+                  )
+                ],
               ),
             ),
+
+            // Botón Cerrar (Arriba Derecha)
             Positioned(
               top: 40,
               right: 20,
@@ -655,16 +762,55 @@ class CaseGalleryGrid extends StatelessWidget {
                     color: Colors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 30),
+                  child: const Icon(Icons.close, color: Colors.white, size: 28),
                 ),
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPage(String url) {
+    if (url.isEmpty) {
+      return const Center(child: Text('Imagen no disponible', style: TextStyle(color: Colors.white)));
+    }
+    return Padding(
+      // Márgenes estrictos para asegurar que el fondo de burbujas SIEMPRE se vea
+      padding: const EdgeInsets.only(top: 160.0, bottom: 80.0, left: 24.0, right: 24.0),
+      child: Center(
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15), // Cambiado a efecto vidrio (transparente)
+            borderRadius: BorderRadius.circular(24.0),
+            border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22.5),
+            child: InteractiveViewer(
+              child: Image.network(
+                url,
+                fit: BoxFit.contain, // Mantiene la imagen completa sin recortar nada importante
+                errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 50)),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
+// -----------------------------------------------------------------------------
 
 class ServicesScreen extends StatefulWidget {
   final Doctor doctor;

@@ -277,15 +277,6 @@
 
         container.appendChild(section);
       });
-
-      // Delegación de eventos en el contenedor agrupado
-      container.addEventListener('click', (e) => {
-        const button = e.target.closest('button[data-action]');
-        if (!button) return;
-        const { action, id } = button.dataset;
-        if (action === 'edit') openEditForm(id);
-        else if (action === 'delete') handleDeleteDoctor(id);
-      }, { once: false });
     }
 
     document.getElementById('prev-page-btn').disabled = page <= 1;
@@ -307,6 +298,15 @@
   document.getElementById('prev-page-btn').addEventListener('click', () => renderPage(currentPage - 1));
   document.getElementById('next-page-btn').addEventListener('click', () => renderPage(currentPage + 1));
   searchInput.addEventListener('input', () => renderPage(1));
+
+  // Delegación de eventos en el contenedor agrupado (registrado UNA sola vez)
+  document.getElementById('doctors-grouped').addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-action]');
+    if (!button) return;
+    const { action, id } = button.dataset;
+    if (action === 'edit') openEditForm(id);
+    else if (action === 'delete') handleDeleteDoctor(id);
+  });
 
   // --- Lógica de Navegación y Carga ---
   const showListView = () => { addDoctorView.classList.add('hidden'); doctorsView.classList.remove('hidden'); };
@@ -386,15 +386,20 @@
     }
   };
 
+  let isDeleting = false;
   const handleDeleteDoctor = async (docId) => {
+    if (isDeleting) return;
     if (!confirm('¿Estás seguro de que quieres eliminar este médico?')) return;
+    isDeleting = true;
     try {
       const deleteDoctorFunc = httpsCallable(functions, 'deleteDoctor');
       await deleteDoctorFunc({ docId });
       showSuccess('Médico eliminado exitosamente.');
-      loadDoctors();
+      await loadDoctors();
     } catch (error) {
       showError(error.message);
+    } finally {
+      isDeleting = false;
     }
   };
 
